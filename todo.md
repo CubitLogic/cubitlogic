@@ -1,0 +1,46 @@
+# Cubit Logic TODO
+
+- [x] Initial site build — Home, Topics, Blog, BlogPost pages
+- [x] Dark quantum theme — Orbitron/Space Grotesk fonts, bioluminescent palette
+- [x] Cubit Logic logo integrated
+- [x] Particle field background animation
+- [x] AI Tutor chat section (canned responses)
+- [x] SEO meta description and keywords fix
+- [x] Auto-scroll to AI chat bug fix
+- [x] Upgrade to full-stack (tRPC + DB + auth)
+- [x] Wire AI Tutor to real LLM via backend tRPC endpoint
+- [ ] Connect newsletter subscribe form to email service (Mailchimp/ConvertKit)
+- [ ] Add Open Graph / social preview image
+- [ ] Add per-page meta descriptions for Topics, Blog, BlogPost
+- [ ] Add About page
+- [ ] Add more blog articles (quantum error correction, IBM roadmap, etc.)
+- [ ] Submit sitemap to Google Search Console
+- [x] Add Stripe integration (webdev_add_feature)
+- [x] Build subscription backend — checkout session, webhook, subscription status DB table
+- [x] Build pricing page with Free vs Pro comparison
+- [x] Add AI chat usage limits (5 questions/day free, unlimited Pro)
+- [x] Add upgrade prompt when free limit is hit
+- [x] Add Pricing link and Upgrade Pro button to navbar
+- [x] Build auto-updating personalized news feed (RSS, server-side caching, per-user preferences)
+- [x] Build /news page with category toggles and settings modal
+- [x] Add news preview section to Home page
+- [x] Build /success confirmation page for Stripe checkout
+- [x] Add News link to navbar
+- [ ] AI marketplace — "Built by AI" app/tool listing and selling platform
+- [x] Build Hardware/Equipment section — catalog page, detail pages, quantum + AI hardware content
+- [x] Build Prompt Engineering course — 7 modules, free (1-2) and Pro-gated (3-7), landing page + module detail pages
+- [x] Add curated YouTube video links to each hardware detail page
+- [ ] Fix hero: add clearer supporting subtitle, tighten mobile layout
+- [ ] Fix footer: replace all # links with real page links or remove dead ones
+- [ ] Fix AI Tutor links on /topics and /pricing to point to /#ai-tutor
+- [ ] Fix topic cards to link to individual lesson pages (/topics/:id)
+- [ ] Improve Pro value copy on Pricing page with concrete feature examples
+- [ ] Fix news section: filter to AI/quantum/tech only, relabel as Science & Tech
+- [ ] Add accessibility labels to icon-only buttons and empty links
+- [ ] Optimize logo image to smaller display size
+- [ ] Add persistent Ask AI Tutor floating button or above-fold entry point
+- [x] Add notifications DB table (id, userId, title, message, type, isRead, createdAt)
+- [x] Build notification tRPC router (list, markRead, markAllRead, admin broadcast)
+- [x] Add notification bell icon in navbar with unread badge count
+- [x] Wire owner alerts into Stripe webhook, PayPal capture, and newsletter subscribe
+- [x] Add welcome notification on first login

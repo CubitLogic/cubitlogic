@@ -1,0 +1,227 @@
+/* 
+  CUBIT LOGIC — Clean Light Theme
+  Design: White/light-gray bg, dark navy text, electric cyan (#0099CC) + quantum violet (#6B21FF) accents
+  Fonts: Orbitron (display) + Space Grotesk (body) + JetBrains Mono (code)
+*/
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-cyan: #0099CC;
+  --color-violet: #6B21FF;
+}
+
+:root {
+  --radius: 0.5rem;
+  /* Light theme */
+  --background: oklch(0.98 0.005 220);
+  --foreground: oklch(0.15 0.02 240);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.02 240);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.02 240);
+  --primary: oklch(0.50 0.18 220);
+  --primary-foreground: oklch(0.98 0.005 220);
+  --secondary: oklch(0.94 0.01 220);
+  --secondary-foreground: oklch(0.20 0.02 240);
+  --muted: oklch(0.94 0.01 220);
+  --muted-foreground: oklch(0.45 0.03 230);
+  --accent: oklch(0.55 0.22 290);
+  --accent-foreground: oklch(0.98 0.005 220);
+  --destructive: oklch(0.55 0.22 25);
+  --border: oklch(0.88 0.01 220);
+  --input: oklch(0.88 0.01 220);
+  --ring: oklch(0.50 0.18 220);
+  --sidebar: oklch(0.96 0.008 220);
+  --sidebar-foreground: oklch(0.15 0.02 240);
+  --sidebar-border: oklch(0.88 0.01 220);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Orbitron', sans-serif;
+  }
+  code, pre, .mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href] {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .flex {
+    min-height: 0;
+    min-width: 0;
+  }
+  @media (min-width: 640px) {
+    .container { padding-left: 1.5rem; padding-right: 1.5rem; }
+  }
+  @media (min-width: 1024px) {
+    .container { padding-left: 2rem; padding-right: 2rem; max-width: 1280px; }
+  }
+
+  /* Cubit Logic custom utilities — light theme */
+  .glow-cyan {
+    box-shadow: 0 0 20px rgba(0, 153, 204, 0.25), 0 0 40px rgba(0, 153, 204, 0.08);
+  }
+  .glow-violet {
+    box-shadow: 0 0 20px rgba(107, 33, 255, 0.2), 0 0 40px rgba(107, 33, 255, 0.08);
+  }
+  .text-glow-cyan {
+    text-shadow: 0 0 16px rgba(0, 153, 204, 0.4);
+  }
+  .glass-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 153, 204, 0.15);
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+  }
+  .glass-card:hover {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 153, 204, 0.35);
+    box-shadow: 0 4px 24px rgba(0, 153, 204, 0.12);
+  }
+  .cyan-underline {
+    text-decoration: none;
+    background: linear-gradient(90deg, #0099CC, #6B21FF);
+    background-size: 100% 2px;
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    padding-bottom: 2px;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #0099CC, #0077AA);
+    color: #ffffff;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 4px 20px rgba(0, 153, 204, 0.4);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active {
+    transform: scale(0.97);
+  }
+  .btn-outline-cyan {
+    background: transparent;
+    color: #0077AA;
+    border: 1.5px solid rgba(0, 153, 204, 0.6);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .btn-outline-cyan:hover {
+    background: rgba(0, 153, 204, 0.08);
+    border-color: #0099CC;
+    box-shadow: 0 2px 12px rgba(0, 153, 204, 0.2);
+  }
+  .section-diagonal {
+    clip-path: polygon(0 0, 100% 4%, 100% 100%, 0 96%);
+    margin-top: -3rem;
+    padding-top: 5rem;
+    padding-bottom: 5rem;
+  }
+}
+
+/* Particle canvas background — subtle on light */
+#particle-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.12;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f0f4f8; }
+::-webkit-scrollbar-thumb { background: rgba(0, 153, 204, 0.35); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 153, 204, 0.6); }
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(0, 153, 204, 0.2); }
+  50% { box-shadow: 0 0 28px rgba(0, 153, 204, 0.45), 0 0 50px rgba(0, 153, 204, 0.15); }
+}
+@keyframes rotate-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.animate-float { animation: float 6s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+.animate-rotate-slow { animation: rotate-slow 20s linear infinite; }
+.animate-fade-up { animation: fade-up 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+.animate-shimmer {
+  background: linear-gradient(90deg, #0099CC 0%, #6B21FF 50%, #0099CC 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float, .animate-pulse-glow, .animate-rotate-slow, .animate-fade-up, .animate-shimmer {
+    animation: none;
+  }
+}
