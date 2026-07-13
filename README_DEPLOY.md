@@ -43,7 +43,12 @@ pnpm start
 
 Rotate the Stripe webhook secret that appeared in the original export. Do not reuse it.
 
-Anonymous AI Tutor limits are still not production-grade. Logged-in free users are limited in the database, but anonymous visitors can still bypass limits unless you add a server-side anonymous/session/IP limiter.
+The AI Tutor supports Gemini's OpenAI-compatible API. Add `GEMINI_API_KEY` in
+your host's secrets panel to use Gemini Flash Lite; the key is never sent to a
+browser. Anonymous visitors are limited server-side to five questions per day
+per IP hash, with an eight-second cooldown. That limiter is in-memory, so use
+Redis or a database-backed limiter if the app is later scaled to multiple
+instances.
 
 ## Recommended host
 
@@ -70,5 +75,6 @@ Set these in your host's environment/secrets panel:
 - `STRIPE_WEBHOOK_SECRET`
 - `PAYPAL_CLIENT_ID`
 - `PAYPAL_CLIENT_SECRET`
+- `GEMINI_API_KEY`
 
 Do not commit real values. Ever. Secrets in GitHub are just tiny public disasters wearing sunglasses.

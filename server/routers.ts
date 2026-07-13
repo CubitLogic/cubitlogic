@@ -12,6 +12,7 @@ import { eq, and } from "drizzle-orm";
 import { newsRouter } from "./newsRouter";
 import { paypalRouter } from "./paypalRouter";
 import { notificationRouter, alertOwner } from "./notificationRouter";
+import { createHash } from "node:crypto";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const stripe = stripeSecretKey
@@ -19,6 +20,32 @@ const stripe = stripeSecretKey
   : null;
 const PRICE_ID = process.env.STRIPE_PRICE_ID;
 const FREE_DAILY_LIMIT = 5;
+const ANONYMOUS_CHAT_COOLDOWN_MS = 8_000;
+
+type AnonymousUsage = { date: string; count: number; lastRequestAt: number };
+const anonymousUsage = new Map<string, AnonymousUsage>();
+
+function anonymousClientId(ctx: TrpcContext) {
+  const forwarded = ctx.req.headers["x-forwarded-for"];
+  const source = Array.isArray(forwarded)
+    ? forwarded[0] ?? ctx.req.ip ?? "unknown"
+    : forwarded?.split(",")[0]?.trim() || ctx.req.ip || "unknown";
+  return createHash("sha256").update(source).digest("hex");
+}
+
+function getAnonymousUsage(ctx: TrpcContext) {
+  const key = anonymousClientId(ctx);
+  const date = todayStr();
+  const existing = anonymousUsage.get(key);
+  if (!existing || existing.date !== date) {
+    return { key, usage: { date, count: 0, lastRequestAt: 0 } };
+  }
+  return { key, usage: existing };
+}
+
+function saveAnonymousUsage(key: string, usage: AnonymousUsage) {
+  anonymousUsage.set(key, usage);
+}
 
 const QUANTUM_SYSTEM_PROMPT = `You are the Cubit Logic AI Tutor, an expert in quantum computing, quantum mechanics, and quantum artificial intelligence. You are embedded on CubitLogic.com, an educational website dedicated to making quantum intelligence accessible to everyone.
 
@@ -72,7 +99,13 @@ export const appRouter = router({
     // Get current usage status for the logged-in user (or anonymous)
     usageStatus: publicProcedure.query(async ({ ctx }: { ctx: TrpcContext }) => {
       if (!ctx.user) {
-        return { isPro: false, usedToday: 0, limit: FREE_DAILY_LIMIT, remaining: FREE_DAILY_LIMIT };
+        const { usage } = getAnonymousUsage(ctx);
+        return {
+          isPro: false,
+          usedToday: usage.count,
+          limit: FREE_DAILY_LIMIT,
+          remaining: Math.max(0, FREE_DAILY_LIMIT - usage.count),
+        };
       }
       const db = await getDb();
       if (!db) return { isPro: false, usedToday: 0, limit: FREE_DAILY_LIMIT, remaining: FREE_DAILY_LIMIT };
@@ -119,8 +152,25 @@ export const appRouter = router({
           }
         }
 
-        // For anonymous users, apply a simple session-based limit via response (no DB)
-        // We just let them through — the frontend tracks anonymous usage in localStorage
+        // Anonymous visitors are counted by a server-side limiter below.
+
+        // Enforce an in-memory server-side limit for anonymous visitors so
+        // clearing browser storage cannot bypass the Gemini free-tier guard.
+        if (!ctx.user) {
+          const { key, usage } = getAnonymousUsage(ctx);
+          const now = Date.now();
+          if (
+            usage.count >= FREE_DAILY_LIMIT ||
+            now - usage.lastRequestAt < ANONYMOUS_CHAT_COOLDOWN_MS
+          ) {
+            return { reply: null, limitReached: true };
+          }
+          saveAnonymousUsage(key, {
+            ...usage,
+            count: usage.count + 1,
+            lastRequestAt: now,
+          });
+        }
 
         const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
           { role: "system", content: QUANTUM_SYSTEM_PROMPT },

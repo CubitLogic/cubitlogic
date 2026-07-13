@@ -8,11 +8,24 @@ export const ENV = {
   oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
   ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
   isProduction: process.env.NODE_ENV === "production",
-  // OpenAI-compatible provider used by the AI Tutor. Configure all three in
-  // GoDaddy Secrets; no retired builder credential is required.
-  llmApiUrl: process.env.LLM_API_URL ?? process.env.OPENAI_BASE_URL ?? "",
-  llmApiKey: process.env.LLM_API_KEY ?? process.env.OPENAI_API_KEY ?? "",
-  llmModel: process.env.LLM_MODEL ?? process.env.OPENAI_MODEL ?? "",
+  // The AI Tutor accepts any OpenAI-compatible provider. Gemini is the
+  // default when GEMINI_API_KEY is set; generic LLM settings still override
+  // it for a future provider change.
+  llmApiUrl:
+    process.env.LLM_API_URL ??
+    process.env.OPENAI_BASE_URL ??
+    (process.env.GEMINI_API_KEY
+      ? "https://generativelanguage.googleapis.com/v1beta/openai"
+      : ""),
+  llmApiKey:
+    process.env.LLM_API_KEY ??
+    process.env.OPENAI_API_KEY ??
+    process.env.GEMINI_API_KEY ??
+    "",
+  llmModel:
+    process.env.LLM_MODEL ??
+    process.env.OPENAI_MODEL ??
+    (process.env.GEMINI_API_KEY ? "gemini-3.1-flash-lite" : ""),
   // Retained only for optional legacy helper endpoints that return a clear
   // configuration error when no storage/notification service is attached.
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",

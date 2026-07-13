@@ -217,7 +217,12 @@ const resolveApiUrl = (path: string) => {
   if (!base) {
     throw new Error("AI Tutor provider URL is not configured");
   }
-  return `${base.endsWith("/v1") ? base : `${base}/v1`}/${path}`;
+  // Gemini's OpenAI-compatible endpoint already includes its version segment
+  // (`.../v1beta/openai`), so appending `/v1` would produce an invalid URL.
+  const versionedBase = base.endsWith("/v1") || base.endsWith("/openai")
+    ? base
+    : `${base}/v1`;
+  return `${versionedBase}/${path}`;
 };
 
 const assertApiKey = () => {
