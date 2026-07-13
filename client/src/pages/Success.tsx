@@ -29,13 +29,13 @@ export default function Success() {
 
           {/* Headline */}
           <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-3" style={{ fontFamily: "'Orbitron', sans-serif" }}>
-            Welcome to Cubit Logic Pro
+            Thanks for supporting Cubit Logic
           </h1>
           <p className="text-lg text-gray-500 mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Your subscription is active. You now have unlimited access to the AI Tutor and all Pro features.
+            We are confirming your subscription securely. Supporter access updates as soon as your payment provider confirms it.
           </p>
           <p className="text-sm text-gray-400 mb-10" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            A confirmation receipt has been sent to your email address.
+            Please keep this page open for a moment, then refresh if your Supporter access does not appear right away.
           </p>
 
           {/* What's included */}

@@ -11,10 +11,11 @@ const stripe = stripeSecretKey
   : null;
 
 export function registerStripeWebhook(app: Express) {
-  if (!stripe) {
-    console.warn("[Webhook] Stripe is not configured; webhook processing is disabled");
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!stripe || !webhookSecret) {
+    console.warn("[Webhook] Stripe webhook is not configured; webhook processing is disabled");
     app.post("/api/stripe/webhook", (_req: Request, res: Response) => {
-      res.status(503).send("Stripe is not configured for this deployment");
+      res.status(503).send("Stripe webhook is not configured for this deployment");
     });
     return;
   }
@@ -23,18 +24,11 @@ export function registerStripeWebhook(app: Express) {
   // so req.body here is a Buffer for this route
   app.post("/api/stripe/webhook", async (req: Request, res: Response) => {
     const sig = req.headers["stripe-signature"] as string;
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
     let event: Stripe.Event;
 
     try {
-      if (webhookSecret && sig) {
-        event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-      } else {
-        // No webhook secret configured — parse raw body as JSON
-        const rawBody = Buffer.isBuffer(req.body) ? req.body.toString() : JSON.stringify(req.body);
-        event = JSON.parse(rawBody) as Stripe.Event;
-      }
+      if (!sig) throw new Error("Missing Stripe signature");
+      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
     } catch (err) {
       console.error("[Webhook] Signature verification failed:", err);
       res.status(400).send("Webhook signature verification failed");

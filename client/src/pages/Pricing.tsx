@@ -48,13 +48,20 @@ export default function Pricing() {
   const paypalMutation = trpc.paypal.createSubscription.useMutation();
   const { data: authUser } = trpc.auth.me.useQuery();
 
-  const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/fZu7sK34z1WPcGUgu4cAo01";
-
   const handleUpgrade = async () => {
     if (paymentMethod === "stripe") {
-      // Direct Stripe Payment Link — no login required
-      window.open(STRIPE_PAYMENT_LINK, "_blank");
-      toast.success("Opening secure checkout in a new tab...");
+      if (!authUser) {
+        toast.error("Please sign in or create an account before checkout.");
+        return;
+      }
+      try {
+        toast.loading("Opening secure checkout...");
+        const result = await checkoutMutation.mutateAsync();
+        if (!result.url) throw new Error("Stripe did not return a checkout URL");
+        window.location.assign(result.url);
+      } catch {
+        toast.error("Checkout is not configured yet. Please try again later.");
+      }
     } else {
       // PayPal still requires auth for subscription linking
       if (!authUser) {
