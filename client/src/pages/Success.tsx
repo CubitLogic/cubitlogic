@@ -7,24 +7,9 @@ import { trpc } from "@/lib/trpc";
 
 export default function Success() {
   const utils = trpc.useUtils();
-  const capturePaypalMutation = trpc.paypal.captureSubscription.useMutation({
-    onSuccess: () => {
-      utils.auth.me.invalidate();
-    },
-  });
 
-  // Refresh auth state so the Pro badge shows immediately.
-  // PayPal approval redirects back here with a subscription id; capture it so the DB is upgraded to Pro.
+  // Refresh auth state so the Pro badge shows immediately
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const payment = params.get("payment");
-    const subscriptionId = params.get("subscription_id") || params.get("subscriptionId");
-
-    if (payment === "paypal" && subscriptionId) {
-      capturePaypalMutation.mutate({ subscriptionId });
-      return;
-    }
-
     utils.auth.me.invalidate();
   }, []);
 

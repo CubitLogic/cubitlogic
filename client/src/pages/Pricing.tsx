@@ -6,7 +6,6 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ParticleField from "@/components/ParticleField";
 import { toast } from "sonner";
-import { getLoginUrl } from "@/const";
 
 function useFadeUp() {
   const ref = useRef<HTMLDivElement>(null);
@@ -49,26 +48,26 @@ export default function Pricing() {
   const paypalMutation = trpc.paypal.createSubscription.useMutation();
   const { data: authUser } = trpc.auth.me.useQuery();
 
+  const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/fZu7sK34z1WPcGUgu4cAo01";
+
   const handleUpgrade = async () => {
-    if (!authUser) {
-      toast.error("Please sign in first so your supporter subscription can be linked to your account.");
-      window.location.href = getLoginUrl();
-      return;
-    }
-
-    try {
-      toast.loading(paymentMethod === "paypal" ? "Redirecting to PayPal..." : "Redirecting to secure checkout...");
-
-      if (paymentMethod === "stripe") {
-        const result = await checkoutMutation.mutateAsync();
-        if (result.url) window.location.href = result.url;
+    if (paymentMethod === "stripe") {
+      // Direct Stripe Payment Link — no login required
+      window.open(STRIPE_PAYMENT_LINK, "_blank");
+      toast.success("Opening secure checkout in a new tab...");
+    } else {
+      // PayPal still requires auth for subscription linking
+      if (!authUser) {
+        toast.error("Please sign in first to support via PayPal.");
         return;
       }
-
-      const result = await paypalMutation.mutateAsync();
-      if (result.url) window.location.href = result.url;
-    } catch {
-      toast.error("Failed to start checkout. Please try again.");
+      try {
+        toast.loading("Redirecting to PayPal...");
+        const result = await paypalMutation.mutateAsync();
+        if (result.url) window.open(result.url, "_blank");
+      } catch {
+        toast.error("Failed to start checkout. Please try again.");
+      }
     }
   };
 

@@ -4,11 +4,13 @@ import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
+import { registerLocalAuthRoutes } from "./localAuth";
 import { registerStorageProxy } from "./storageProxy";
 import { registerStripeWebhook } from "../stripeWebhook";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { initializeDatabase } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -33,13 +35,9 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
-  app.disable("x-powered-by");
-  app.use((_req, res, next) => {
-    res.setHeader("X-Content-Type-Options", "nosniff");
-    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-    next();
-  });
+  // The GoDaddy deployment supplies DB_* values for its hosted MySQL service.
+  // Table setup is idempotent, so preview and published app share one schema.
+  await initializeDatabase();
 
   // Stripe webhook needs raw body BEFORE express.json()
   app.use("/api/stripe/webhook", express.raw({ type: "application/json" }));
@@ -50,6 +48,7 @@ async function startServer() {
 
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  registerLocalAuthRoutes(app);
   registerStripeWebhook(app);
 
   // tRPC API

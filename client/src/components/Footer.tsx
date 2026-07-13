@@ -78,12 +78,8 @@ export default function Footer() {
               <li><Link href="/news" className="text-gray-500 hover:text-[#0099CC] text-sm transition-colors" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>News Feed</Link></li>
               <li><Link href="/hardware" className="text-gray-500 hover:text-[#0099CC] text-sm transition-colors" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Hardware Lab</Link></li>
               <li><Link href="/prompt-engineering" className="text-gray-500 hover:text-[#0099CC] text-sm transition-colors" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Prompt Course</Link></li>
-              <li><Link href="/pricing" className="text-gray-500 hover:text-[#0099CC] text-sm transition-colors" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>❤️ Support Us</Link></li>
+              <li><a href="https://buy.stripe.com/fZu7sK34z1WPcGUgu4cAo01" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-[#0099CC] text-sm transition-colors" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>❤️ Support Us</a></li>
               <li><a href="mailto:admin@cubitlogic.com" className="text-gray-500 hover:text-[#0099CC] text-sm transition-colors" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Contact</a></li>
-              <li><Link href="/about" className="text-gray-500 hover:text-[#0099CC] text-sm transition-colors" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>About</Link></li>
-              <li><Link href="/privacy" className="text-gray-500 hover:text-[#0099CC] text-sm transition-colors" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Privacy</Link></li>
-              <li><Link href="/terms" className="text-gray-500 hover:text-[#0099CC] text-sm transition-colors" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Terms</Link></li>
-              <li><Link href="/refund-policy" className="text-gray-500 hover:text-[#0099CC] text-sm transition-colors" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Refund Policy</Link></li>
             </ul>
           </div>
         </div>

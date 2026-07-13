@@ -23,8 +23,6 @@ export default function ParticleField() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -43,7 +41,7 @@ export default function ParticleField() {
       color: colors[Math.floor(Math.random() * colors.length)],
     }));
 
-    let animId = 0;
+    let animId: number;
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -79,12 +77,10 @@ export default function ParticleField() {
 
       animId = requestAnimationFrame(draw);
     };
-    if (!reduceMotion) {
-      draw();
-    }
+    draw();
 
     return () => {
-      if (animId) cancelAnimationFrame(animId);
+      cancelAnimationFrame(animId);
       window.removeEventListener("resize", resize);
     };
   }, []);
@@ -93,7 +89,6 @@ export default function ParticleField() {
     <canvas
       ref={canvasRef}
       id="particle-canvas"
-      aria-hidden="true"
       style={{
         position: "fixed",
         top: 0,
