@@ -17,7 +17,7 @@ const navLinks = [
   { label: "Blog", href: "/blog" },
   { label: "AI Tutor", href: "/#ai-tutor" },
   { label: "News", href: "/news" },
-  { label: "Pricing", href: "/pricing" },
+  { label: "Support", href: "/support" },
 ];
 
 // Only show notification bell for logged-in users
@@ -86,11 +86,11 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-3">
           <NotificationBellWrapper />
           <Link
-            href="/pricing"
+            href="/support"
             className="text-sm px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:border-[#0099CC] hover:text-[#0099CC] transition-colors"
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
           >
-            Upgrade Pro
+            Donate
           </Link>
           <a
             href="/#ai-tutor"

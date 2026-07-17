@@ -69,23 +69,27 @@ export function registerStripeWebhook(app: Express) {
               .set({
                 stripeCustomerId: customerId,
                 stripeSubscriptionId: subscriptionId,
-                subscriptionStatus: "pro",
               })
               .where(eq(users.id, parseInt(userId)));
-            console.log(`[Webhook] User ${userId} upgraded to Pro`);
+            console.log(`[Webhook] Recorded recurring donation for user ${userId}`);
 
             // Notify the user
             await createNotification({
               userId: parseInt(userId),
-              title: "Welcome, Supporter!",
-              message: "Thank you for supporting CubitLogic! You now have unlimited AI Tutor access, the full Prompt Engineering course, and priority responses.",
+              title: "Thank You for Donating!",
+              message: "Thank you for your voluntary monthly donation to CubitLogic. Your contribution helps fund hosting, AI usage, and new educational content; it does not purchase membership or paid access.",
               type: "subscription",
             });
-
-            // Alert the owner
-            const userName = session.metadata?.customer_name || session.metadata?.customer_email || `User #${userId}`;
-            await alertOwner("New Supporter!", `${userName} just became a CubitLogic supporter via Stripe ($5/month).`);
           }
+
+          // Alert the owner for both signed-in and anonymous donations.
+          const donorName = session.metadata?.customer_name
+            || session.metadata?.customer_email
+            || session.customer_details?.name
+            || session.customer_details?.email
+            || session.customer_email
+            || (userId ? `User #${userId}` : "An anonymous donor");
+          await alertOwner("New Monthly Donation", `${donorName} started a voluntary CubitLogic donation via Stripe ($5/month).`);
           break;
         }
 
@@ -94,18 +98,7 @@ export function registerStripeWebhook(app: Express) {
           const subscription = event.data.object as Stripe.Subscription;
           const customerId = subscription.customer as string;
           const isActive = subscription.status === "active" || subscription.status === "trialing";
-
-          // Find user by stripe customer ID
-          const userRows = await db.select().from(users)
-            .where(eq(users.stripeCustomerId, customerId))
-            .limit(1);
-
-          if (userRows.length > 0) {
-            await db.update(users)
-              .set({ subscriptionStatus: isActive ? "pro" : "free" })
-              .where(eq(users.stripeCustomerId, customerId));
-            console.log(`[Webhook] Customer ${customerId} subscription status: ${isActive ? "pro" : "free"}`);
-          }
+          console.log(`[Webhook] Customer ${customerId} recurring donation status: ${isActive ? "active" : subscription.status}`);
           break;
         }
 
@@ -113,28 +106,25 @@ export function registerStripeWebhook(app: Express) {
           const invoice = event.data.object as Stripe.Invoice;
           const customerId = invoice.customer as string;
 
-          // Find user before downgrading
+          // Find the donor so we can send a billing notice. Access is not
+          // changed because a recurring donation does not buy site benefits.
           const failedUserRows = await db.select().from(users)
             .where(eq(users.stripeCustomerId, customerId))
             .limit(1);
-
-          await db.update(users)
-            .set({ subscriptionStatus: "free" })
-            .where(eq(users.stripeCustomerId, customerId));
-          console.log(`[Webhook] Payment failed for customer ${customerId}, downgraded to free`);
+          console.log(`[Webhook] Monthly donation payment failed for customer ${customerId}`);
 
           // Notify the user about payment failure
           if (failedUserRows.length > 0) {
             await createNotification({
               userId: failedUserRows[0].id,
-              title: "Payment Issue",
-              message: "Your supporter payment couldn't be processed. Your account has been reverted to the free tier. Please update your payment method to continue supporting CubitLogic.",
+              title: "Donation Payment Issue",
+              message: "We couldn't process your voluntary monthly donation. Please update your payment method if you'd like to continue supporting CubitLogic. Your access to CubitLogic is unchanged.",
               type: "subscription",
             });
           }
 
           // Alert owner
-          await alertOwner("Payment Failed", `Customer ${customerId} payment failed — account downgraded to free.`);
+          await alertOwner("Donation Payment Failed", `Customer ${customerId}'s voluntary monthly donation payment failed.`);
           break;
         }
 

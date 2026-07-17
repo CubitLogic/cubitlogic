@@ -13,10 +13,11 @@ export default function Terms() {
           Terms of Use
         </h1>
         <div className="space-y-5 text-gray-600 leading-relaxed" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-          <p>Last updated: July 10, 2026</p>
+          <p>Last updated: July 17, 2026</p>
           <p>Cubit Logic provides educational content, AI-assisted explanations, curated news, and related learning resources. The content is for education and general information only.</p>
           <p>You agree not to abuse the AI tutor, attempt unauthorized access, interfere with site operation, scrape content at abusive rates, or use the service for unlawful activity.</p>
-          <p>Supporter subscriptions provide enhanced access and help fund development. Cubit Logic may update features, limits, and pricing with reasonable notice.</p>
+          <p>Cubit Logic may accept voluntary donations to help fund hosting, AI compute, maintenance, and new educational content. A donation is not a purchase, does not create a membership, and does not grant enhanced access, special features, or priority service.</p>
+          <p>If you choose a recurring monthly donation, it continues until you cancel it through the payment provider or ask Cubit Logic support for help. Cancelling a donation does not change your access to the site.</p>
           <p>The site is provided as-is without a guarantee that every explanation, external feed item, or AI response is complete or error-free. Verify high-stakes technical, financial, medical, or legal decisions independently. Yes, reality remains annoyingly non-optional.</p>
           <p>Questions may be sent to support@cubitlogic.com.</p>
         </div>

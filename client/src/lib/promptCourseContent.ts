@@ -19,7 +19,6 @@ export interface CourseModule {
   subtitle: string;
   description: string;
   duration: string;
-  isPro: boolean;
   color: string;
   icon: string;
   sections: CourseSection[];
@@ -36,7 +35,6 @@ export const courseModules: CourseModule[] = [
     description:
       "Before you can write good prompts, you need to understand what's happening under the hood. This module explains how language models process your input — tokens, context windows, probability, and why the same question phrased two different ways can produce completely different answers.",
     duration: "15 min",
-    isPro: false,
     color: "#0099CC",
     icon: "🧠",
     sections: [
@@ -88,7 +86,6 @@ export const courseModules: CourseModule[] = [
     description:
       "The structure of your prompt is as important as the content. This module covers the three most powerful structural techniques: role prompting, chain-of-thought reasoning, and step-by-step decomposition. These alone will double the quality of your outputs.",
     duration: "20 min",
-    isPro: false,
     color: "#6B21FF",
     icon: "🏗️",
     sections: [
@@ -148,7 +145,6 @@ export const courseModules: CourseModule[] = [
     description:
       "Vague prompts produce vague outputs. This module teaches you to control exactly what you get back — format, length, tone, structure, and style. You'll learn to use output templates that make AI responses drop directly into your workflow.",
     duration: "25 min",
-    isPro: true,
     color: "#10b981",
     icon: "🎯",
     sections: [
@@ -223,7 +219,6 @@ Topic: The hidden cost of poor prompt engineering in enterprise AI deployments.`
     description:
       "Most people give up when the first response isn't right. Experts iterate. This module teaches you the refinement techniques that turn a mediocre first draft into exactly what you need — without rewriting the whole prompt from scratch.",
     duration: "20 min",
-    isPro: true,
     color: "#f59e0b",
     icon: "🔄",
     sections: [
@@ -284,7 +279,6 @@ Topic: The hidden cost of poor prompt engineering in enterprise AI deployments.`
     description:
       "This module covers the techniques used by professionals and developers — few-shot prompting, system prompt design, and managing complex multi-turn conversations. These are the tools that separate casual users from power users.",
     duration: "30 min",
-    isPro: true,
     color: "#ef4444",
     icon: "⚡",
     sections: [
@@ -354,7 +348,6 @@ Understood? Now: I have a 2019 F-150 with an intermittent P0300 random misfire..
     description:
       "Theory is useless without application. This module walks through the most common real-world use cases with specific, tested prompt templates for each. Copy, adapt, and use these directly.",
     duration: "35 min",
-    isPro: true,
     color: "#8b5cf6",
     icon: "🌍",
     sections: [
@@ -425,7 +418,6 @@ Understood? Now: I have a 2019 F-150 with an intermittent P0300 random misfire..
     description:
       "Knowing what not to do is as important as knowing what to do. This module catalogs the most common prompt engineering mistakes — the ones that waste time, produce bad outputs, and erode trust in AI tools.",
     duration: "20 min",
-    isPro: true,
     color: "#f97316",
     icon: "⚠️",
     sections: [
@@ -491,7 +483,7 @@ export const courseSummary = {
   description:
     "Most people use AI at 20% of its capability because they don't know how to communicate with it. This course teaches you the techniques used by AI researchers, developers, and power users — from basic structure to advanced multi-turn conversation management. By the end, you'll consistently get outputs that are more accurate, more useful, and closer to what you actually need.",
   totalModules: 7,
-  freeModules: 2,
+  freeModules: 7,
   totalDuration: "~2.5 hours",
   level: "Beginner to Advanced",
 };

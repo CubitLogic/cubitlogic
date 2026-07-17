@@ -13,9 +13,9 @@ export default function RefundPolicy() {
           Refund and Cancellation Policy
         </h1>
         <div className="space-y-5 text-gray-600 leading-relaxed" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-          <p>Last updated: July 10, 2026</p>
-          <p>Supporter subscriptions may be cancelled at any time. Cancellation stops future billing, but access may remain active through the current paid period.</p>
-          <p>If you were charged by mistake or had a technical problem with your subscription, contact support@cubitlogic.com with the email address used for payment.</p>
+          <p>Last updated: July 17, 2026</p>
+          <p>Voluntary monthly donations may be cancelled at any time. Cancellation stops future donations and does not change your access to Cubit Logic because donations do not purchase membership, content, or special features.</p>
+          <p>If you donated by mistake or had a technical problem with a payment, contact support@cubitlogic.com with the email address used for the donation.</p>
           <p>Refund requests are reviewed case by case. Cubit Logic will make a reasonable effort to correct billing problems quickly and fairly.</p>
         </div>
       </main>

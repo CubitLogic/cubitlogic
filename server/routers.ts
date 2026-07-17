@@ -18,7 +18,6 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const stripe = stripeSecretKey
   ? new Stripe(stripeSecretKey, { apiVersion: "2026-06-24.dahlia" })
   : null;
-const PRICE_ID = process.env.STRIPE_PRICE_ID;
 const FREE_DAILY_LIMIT = 5;
 const ANONYMOUS_CHAT_COOLDOWN_MS = 8_000;
 
@@ -110,9 +109,6 @@ export const appRouter = router({
       const db = await getDb();
       if (!db) return { isPro: false, usedToday: 0, limit: FREE_DAILY_LIMIT, remaining: FREE_DAILY_LIMIT };
 
-      const isPro = ctx.user.subscriptionStatus === "pro";
-      if (isPro) return { isPro: true, usedToday: 0, limit: null, remaining: null };
-
       const today = todayStr();
       const rows = await db.select().from(aiUsage)
         .where(and(eq(aiUsage.userId, ctx.user.id), eq(aiUsage.date, today)))
@@ -132,8 +128,9 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }: { input: { message: string; history: { role: "user" | "assistant"; content: string }[] }; ctx: TrpcContext }) => {
         const db = await getDb();
 
-        // Enforce usage limits for non-pro logged-in users
-        if (ctx.user && ctx.user.subscriptionStatus !== "pro" && db) {
+        // Enforce the same usage limit for every logged-in user. Recurring
+        // donations do not buy additional access or change this limit.
+        if (ctx.user && db) {
           const today = todayStr();
           const rows = await db.select().from(aiUsage)
             .where(and(eq(aiUsage.userId, ctx.user.id), eq(aiUsage.date, today)))
@@ -185,41 +182,71 @@ export const appRouter = router({
   }),
 
   subscription: router({
-    // Get current user's subscription status
-    status: protectedProcedure.query(async ({ ctx }: { ctx: TrpcContext & { user: NonNullable<TrpcContext["user"]> } }) => {
+    // Keep the existing response shape for older clients. The legacy billing
+    // status is informational only and never grants additional site access.
+    status: protectedProcedure.query(async () => {
       return {
-        isPro: ctx.user.subscriptionStatus === "pro",
-        status: ctx.user.subscriptionStatus,
+        isPro: false,
+        status: "free" as const,
       };
     }),
 
-    // Create Stripe checkout session for Pro subscription
-    createCheckout: protectedProcedure.mutation(async ({ ctx }: { ctx: TrpcContext & { user: NonNullable<TrpcContext["user"]> } }) => {
-      if (!stripe || !PRICE_ID) {
+    // Keep the existing mutation name for client compatibility, but create a
+    // voluntary monthly donation checkout that is also available to guests.
+    createCheckout: publicProcedure.mutation(async ({ ctx }: { ctx: TrpcContext }) => {
+      if (!stripe) {
         throw new Error("Payments are not configured for this deployment");
       }
       const origin = (ctx.req.headers.origin as string) || "https://www.cubitlogic.com";
+      const donorMetadata = {
+        payment_purpose: "voluntary_monthly_donation",
+        ...(ctx.user
+          ? {
+              user_id: ctx.user.id.toString(),
+              customer_email: ctx.user.email || "",
+              customer_name: ctx.user.name || "",
+            }
+          : {}),
+      };
 
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
+        submit_type: "donate",
         payment_method_types: ["card"],
-        line_items: [{ price: PRICE_ID, quantity: 1 }],
-        customer_email: ctx.user.email ?? undefined,
-        allow_promotion_codes: true,
-        client_reference_id: ctx.user.id.toString(),
-        metadata: {
-          user_id: ctx.user.id.toString(),
-          customer_email: ctx.user.email || "",
-          customer_name: ctx.user.name || "",
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              unit_amount: 500,
+              recurring: { interval: "month" },
+              product_data: {
+                name: "CubitLogic Monthly Donation",
+                description:
+                  "Voluntary monthly support for CubitLogic. This donation does not purchase membership or unlock paid features.",
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        customer_email: ctx.user?.email ?? undefined,
+        client_reference_id: ctx.user?.id.toString(),
+        metadata: donorMetadata,
+        subscription_data: { metadata: donorMetadata },
+        custom_text: {
+          submit: {
+            message:
+              "This is a voluntary monthly donation. CubitLogic content remains available regardless of whether you donate.",
+          },
         },
         success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${origin}/pricing`,
+        cancel_url: `${origin}/support`,
       });
 
       return { url: session.url };
     }),
 
-    // Create Stripe billing portal session to manage/cancel subscription
+    // Preserve the billing portal so existing monthly donors can manage or
+    // cancel their recurring contribution.
     createPortal: protectedProcedure.mutation(async ({ ctx }: { ctx: TrpcContext & { user: NonNullable<TrpcContext["user"]> } }) => {
       if (!stripe) {
         throw new Error("Payments are not configured for this deployment");

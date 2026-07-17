@@ -26,6 +26,7 @@ function Router() {
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/topics" component={Topics} />
       <Route path="/topics/:id" component={TopicDetail} />
+      <Route path="/support" component={Pricing} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/login" component={Login} />
       <Route path="/news" component={News} />

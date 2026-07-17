@@ -16,11 +16,11 @@
 - [ ] Add more blog articles (quantum error correction, IBM roadmap, etc.)
 - [ ] Submit sitemap to Google Search Console
 - [x] Add Stripe integration (webdev_add_feature)
-- [x] Build subscription backend — checkout session, webhook, subscription status DB table
-- [x] Build pricing page with Free vs Pro comparison
-- [x] Add AI chat usage limits (5 questions/day free, unlimited Pro)
-- [x] Add upgrade prompt when free limit is hit
-- [x] Add Pricing link and Upgrade Pro button to navbar
+- [x] Build voluntary monthly-donation checkout while preserving legacy billing management
+- [x] Replace the pricing comparison with a Support CubitLogic donation page
+- [x] Add an equal 5-question daily AI Tutor limit for everyone
+- [x] Replace the paid access prompt with an optional donation message
+- [x] Add Support and Donate links to the navbar
 - [x] Build auto-updating personalized news feed (RSS, server-side caching, per-user preferences)
 - [x] Build /news page with category toggles and settings modal
 - [x] Add news preview section to Home page
@@ -28,13 +28,13 @@
 - [x] Add News link to navbar
 - [ ] AI marketplace — "Built by AI" app/tool listing and selling platform
 - [x] Build Hardware/Equipment section — catalog page, detail pages, quantum + AI hardware content
-- [x] Build Prompt Engineering course — 7 modules, free (1-2) and Pro-gated (3-7), landing page + module detail pages
+- [x] Build Prompt Engineering course — all 7 modules free, landing page + module detail pages
 - [x] Add curated YouTube video links to each hardware detail page
 - [ ] Fix hero: add clearer supporting subtitle, tighten mobile layout
 - [ ] Fix footer: replace all # links with real page links or remove dead ones
-- [ ] Fix AI Tutor links on /topics and /pricing to point to /#ai-tutor
+- [ ] Fix AI Tutor links on /topics and /support to point to /#ai-tutor
 - [ ] Fix topic cards to link to individual lesson pages (/topics/:id)
-- [ ] Improve Pro value copy on Pricing page with concrete feature examples
+- [x] Remove paid membership language and access benefits across the site
 - [ ] Fix news section: filter to AI/quantum/tech only, relabel as Science & Tech
 - [ ] Add accessibility labels to icon-only buttons and empty links
 - [ ] Optimize logo image to smaller display size

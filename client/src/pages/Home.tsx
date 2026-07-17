@@ -33,7 +33,7 @@ function useFadeUp() {
 
 /* ── AI Tutor Chat ── */
 function AiTutorSection() {
-  const [messages, setMessages] = useState<{ role: "user" | "ai"; text: string; isUpgrade?: boolean }[]>([
+  const [messages, setMessages] = useState<{ role: "user" | "ai"; text: string; isLimitNotice?: boolean }[]>([
     { role: "ai", text: "Hello. I'm the Cubit Logic AI Tutor. Ask me anything about quantum computing, quantum mechanics, or quantum AI — at any level." },
   ]);
   const [input, setInput] = useState("");
@@ -57,7 +57,7 @@ function AiTutorSection() {
         .map((m) => ({ role: m.role === "user" ? "user" as const : "assistant" as const, content: m.text }));
       const result = await chatMutation.mutateAsync({ message: userMsg, history: history.slice(0, -1) });
       if (result.limitReached) {
-        setMessages((m) => [...m, { role: "ai", text: "", isUpgrade: true }]);
+        setMessages((m) => [...m, { role: "ai", text: "", isLimitNotice: true }]);
       } else {
         setMessages((m) => [...m, { role: "ai", text: result.reply ?? "I'm having trouble responding right now." }]);
       }
@@ -100,16 +100,16 @@ function AiTutorSection() {
                   <div className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
                     msg.role === "user"
                       ? "bg-[#0099CC]/10 border border-[#0099CC]/20 text-gray-900"
-                      : msg.isUpgrade
+                      : msg.isLimitNotice
                         ? "bg-gradient-to-br from-[#6B21FF]/8 to-[#0099CC]/8 border border-[#0099CC]/25 text-gray-800"
                         : "bg-gray-100 border border-gray-200 text-gray-800"
                   }`} style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                     {msg.role === "ai" && <span className="text-[#6B21FF] font-semibold text-xs block mb-1" style={{ fontFamily: "'Orbitron', sans-serif" }}>CUBIT AI</span>}
-                    {msg.isUpgrade ? (
+                    {msg.isLimitNotice ? (
                       <div>
-                        <p className="mb-3">⚡ You've reached your 5 free questions for today.</p>
-                        <p className="mb-3 text-gray-600">Upgrade to <strong className="text-gray-900">Cubit Logic Pro</strong> for $5/month to get unlimited access to the AI Tutor.</p>
-                        <Link href="/pricing" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-[#050A1A] transition-all active:scale-[0.97]" style={{ background: "linear-gradient(135deg, #00E5FF 0%, #7B2FFF 100%)" }}>Upgrade to Pro →</Link>
+                        <p className="mb-3">⚡ You've reached today's 5-question AI Tutor limit.</p>
+                        <p className="mb-3 text-gray-600">The limit helps manage AI costs and keep CubitLogic free for everyone. Optional donations help us maintain and improve the site.</p>
+                        <Link href="/support" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-[#050A1A] transition-all active:scale-[0.97]" style={{ background: "linear-gradient(135deg, #00E5FF 0%, #7B2FFF 100%)" }}>Support CubitLogic →</Link>
                       </div>
                     ) : msg.text}
                   </div>

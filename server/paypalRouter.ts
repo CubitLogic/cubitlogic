@@ -1,4 +1,4 @@
-import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { protectedProcedure, router } from "./_core/trpc";
 import type { TrpcContext } from "./_core/context";
 import { z } from "zod";
 import { getDb } from "./db";
@@ -9,8 +9,8 @@ import { createNotification, alertOwner } from "./notificationRouter";
 const PAYPAL_BASE = "https://api-m.paypal.com";
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID!;
 const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET!;
-const PRO_PRICE_USD = "5.00";
-const PRO_PLAN_NAME = "Cubit Logic Pro";
+const MONTHLY_DONATION_USD = "5.00";
+const MONTHLY_DONATION_PLAN_NAME = "CubitLogic Monthly Donation";
 
 // Cache access token to avoid re-fetching on every request
 let cachedToken: { token: string; expiresAt: number } | null = null;
@@ -47,7 +47,7 @@ async function paypalRequest(method: string, path: string, body?: object) {
   return res.json();
 }
 
-// Create or retrieve a PayPal subscription plan for $5/month
+// Create or retrieve a recurring PayPal donation plan for $5/month.
 let cachedPlanId: string | null = null;
 
 async function getOrCreatePlan(): Promise<string> {
@@ -57,7 +57,7 @@ async function getOrCreatePlan(): Promise<string> {
   const list = (await paypalRequest("GET", "/v1/billing/plans?page_size=20&status=ACTIVE")) as {
     plans?: { id: string; name: string }[];
   };
-  const existing = list.plans?.find((p) => p.name === PRO_PLAN_NAME);
+  const existing = list.plans?.find((p) => p.name === MONTHLY_DONATION_PLAN_NAME);
   if (existing) {
     cachedPlanId = existing.id;
     return existing.id;
@@ -65,7 +65,8 @@ async function getOrCreatePlan(): Promise<string> {
 
   // Create product first
   const product = (await paypalRequest("POST", "/v1/catalogs/products", {
-    name: PRO_PLAN_NAME,
+    name: MONTHLY_DONATION_PLAN_NAME,
+    description: "Voluntary monthly support for CubitLogic with no membership or paid-access benefits.",
     type: "SERVICE",
     category: "EDUCATIONAL_AND_TEXTBOOKS",
   })) as { id: string };
@@ -73,8 +74,8 @@ async function getOrCreatePlan(): Promise<string> {
   // Create billing plan
   const plan = (await paypalRequest("POST", "/v1/billing/plans", {
     product_id: product.id,
-    name: PRO_PLAN_NAME,
-    description: "Unlimited AI Tutor access, all Prompt Engineering modules, and more.",
+    name: MONTHLY_DONATION_PLAN_NAME,
+    description: "A voluntary monthly donation supporting CubitLogic. It does not purchase membership or unlock paid features.",
     status: "ACTIVE",
     billing_cycles: [
       {
@@ -83,7 +84,7 @@ async function getOrCreatePlan(): Promise<string> {
         sequence: 1,
         total_cycles: 0, // 0 = infinite
         pricing_scheme: {
-          fixed_price: { value: PRO_PRICE_USD, currency_code: "USD" },
+          fixed_price: { value: MONTHLY_DONATION_USD, currency_code: "USD" },
         },
       },
     ],
@@ -99,7 +100,8 @@ async function getOrCreatePlan(): Promise<string> {
 }
 
 export const paypalRouter = router({
-  // Create a PayPal subscription and return the approval URL
+  // Keep the existing API name for compatibility while creating a voluntary
+  // monthly donation through PayPal's recurring-billing infrastructure.
   createSubscription: protectedProcedure.mutation(
     async ({ ctx }: { ctx: TrpcContext & { user: NonNullable<TrpcContext["user"]> } }) => {
       const origin = (ctx.req.headers.origin as string) || "https://www.cubitlogic.com";
@@ -117,7 +119,7 @@ export const paypalRouter = router({
           shipping_preference: "NO_SHIPPING",
           user_action: "SUBSCRIBE_NOW",
           return_url: `${origin}/success?payment=paypal`,
-          cancel_url: `${origin}/pricing`,
+          cancel_url: `${origin}/support`,
         },
         custom_id: ctx.user.id.toString(),
       })) as { id: string; links: { href: string; rel: string }[] };
@@ -129,7 +131,7 @@ export const paypalRouter = router({
     }
   ),
 
-  // Capture/activate a subscription after user approves
+  // Confirm the recurring donation after the donor approves it.
   captureSubscription: protectedProcedure
     .input(z.object({ subscriptionId: z.string() }))
     .mutation(async ({ input, ctx }: { input: { subscriptionId: string }; ctx: TrpcContext & { user: NonNullable<TrpcContext["user"]> } }) => {
@@ -140,40 +142,40 @@ export const paypalRouter = router({
       };
 
       if (sub.status !== "ACTIVE" && sub.status !== "APPROVED") {
-        throw new Error(`Subscription not active: ${sub.status}`);
+        throw new Error(`Recurring donation not active: ${sub.status}`);
       }
 
       // Verify this subscription belongs to this user
       if (sub.custom_id !== ctx.user.id.toString()) {
-        throw new Error("Subscription does not belong to this user");
+        throw new Error("Recurring donation does not belong to this user");
       }
 
-      // Update user to Pro in DB
+      // Retain the PayPal billing ID for reconciliation without changing
+      // access. A donation does not grant a membership tier.
       const db = await getDb();
       if (!db) throw new Error("Database unavailable");
 
       await db.update(users)
         .set({
-          subscriptionStatus: "pro",
-          stripeSubscriptionId: `paypal:${input.subscriptionId}`, // store PayPal sub ID in same field
+          stripeSubscriptionId: `paypal:${input.subscriptionId}`, // legacy shared billing-ID field
         })
         .where(eq(users.id, ctx.user.id));
 
       // Notify the user
       await createNotification({
         userId: ctx.user.id,
-        title: "Welcome, Supporter!",
-        message: "Thank you for supporting CubitLogic via PayPal! You now have unlimited AI Tutor access, the full Prompt Engineering course, and priority responses.",
+        title: "Thank You for Donating!",
+        message: "Thank you for your voluntary monthly donation to CubitLogic via PayPal. Your contribution helps fund hosting, AI usage, and new educational content; it does not purchase membership or paid access.",
         type: "subscription",
       });
 
       // Alert the owner
       const userName = ctx.user.name || ctx.user.email || `User #${ctx.user.id}`;
-      await alertOwner("New Supporter!", `${userName} just became a CubitLogic supporter via PayPal ($5/month).`);
+      await alertOwner("New Monthly Donation", `${userName} started a voluntary CubitLogic donation via PayPal ($5/month).`);
 
       return { success: true };
     }),
 
-  // Webhook handler for PayPal subscription events (called from Express)
+  // Webhook handler for PayPal recurring-donation events (called from Express)
   // This is handled separately in the webhook route, not via tRPC
 });

@@ -1,89 +1,89 @@
-import { useEffect } from "react";
 import { Link } from "wouter";
-import { CheckCircle, Zap, Brain, BookOpen, Rss, ArrowRight } from "lucide-react";
+import { ArrowRight, BookOpen, Brain, CheckCircle, Heart, Server } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { trpc } from "@/lib/trpc";
 
 export default function Success() {
-  const utils = trpc.useUtils();
-
-  // Refresh auth state so the Pro badge shows immediately
-  useEffect(() => {
-    utils.auth.me.invalidate();
-  }, []);
-
   return (
     <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
       <Navbar />
 
       <section className="pt-24 pb-20">
         <div className="container max-w-2xl mx-auto text-center">
-
-          {/* Success icon */}
           <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0099CC20, #6B21FF20)" }}>
+            <div
+              className="w-20 h-20 rounded-full flex items-center justify-center"
+              style={{ background: "linear-gradient(135deg, #0099CC20, #6B21FF20)" }}
+            >
               <CheckCircle size={48} style={{ color: "#0099CC" }} />
             </div>
           </div>
 
-          {/* Headline */}
-          <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-3" style={{ fontFamily: "'Orbitron', sans-serif" }}>
-            Thanks for supporting Cubit Logic
+          <h1
+            className="text-3xl md:text-4xl font-black text-gray-900 mb-3"
+            style={{ fontFamily: "'Orbitron', sans-serif" }}
+          >
+            Thank you for supporting CubitLogic
           </h1>
           <p className="text-lg text-gray-500 mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            We are confirming your subscription securely. Supporter access updates as soon as your payment provider confirms it.
+            Your payment provider is confirming your voluntary monthly donation.
           </p>
           <p className="text-sm text-gray-400 mb-10" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Please keep this page open for a moment, then refresh if your Supporter access does not appear right away.
+            You should receive a receipt or confirmation from the payment provider when it is complete.
           </p>
 
-          {/* What's included */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10 text-left">
-            {[
-              { icon: Brain, title: "Unlimited AI Tutor", desc: "Ask as many questions as you want — no daily cap.", color: "#6B21FF" },
-              { icon: BookOpen, title: "Full Topic Library", desc: "Every quantum and AI concept, from beginner to advanced.", color: "#0099CC" },
-              { icon: Rss, title: "Personalized News Feed", desc: "Customize your AI, quantum, and tech news sources.", color: "#10b981" },
-              { icon: Zap, title: "Priority Updates", desc: "New content and features delivered to Pro members first.", color: "#f59e0b" },
-            ].map(({ icon: Icon, title, desc, color }) => (
-              <div key={title} className="flex items-start gap-3 p-4 rounded-xl border border-gray-100 bg-gray-50">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color + "20" }}>
-                  <Icon size={18} style={{ color }} />
+          <div className="rounded-2xl border border-[#0099CC]/20 bg-gradient-to-br from-[#0099CC]/5 to-[#6B21FF]/5 p-6 mb-10 text-left">
+            <div className="flex items-center gap-2 mb-4">
+              <Heart size={18} className="text-[#0099CC]" />
+              <h2 className="font-bold text-gray-900" style={{ fontFamily: "'Orbitron', sans-serif" }}>
+                Your donation helps fund
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                { icon: Server, title: "Site hosting" },
+                { icon: Brain, title: "AI compute" },
+                { icon: BookOpen, title: "Free lessons" },
+              ].map(({ icon: Icon, title }) => (
+                <div key={title} className="flex items-center gap-2 rounded-xl border border-white/80 bg-white/70 p-3">
+                  <Icon size={16} className="text-[#0099CC] shrink-0" />
+                  <span className="text-sm font-medium text-gray-700" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                    {title}
+                  </span>
                 </div>
-                <div>
-                  <div className="font-semibold text-gray-900 text-sm mb-0.5" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: "0.8rem" }}>{title}</div>
-                  <div className="text-xs text-gray-500" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{desc}</div>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
-          {/* CTA buttons */}
+          <p className="text-sm text-gray-500 mb-8" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            This donation does not purchase a membership or change your site access. CubitLogic remains
+            free for everyone.
+          </p>
+
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
-              href="/#ai-tutor"
+              href="/"
               className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-white font-semibold text-sm transition-opacity hover:opacity-90"
               style={{ background: "linear-gradient(135deg, #0099CC 0%, #6B21FF 100%)", fontFamily: "'Space Grotesk', sans-serif" }}
             >
-              <Brain size={16} />
-              Start with the AI Tutor
+              Continue Learning
+              <ArrowRight size={14} />
             </Link>
             <Link
-              href="/news"
+              href="/support"
               className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm hover:border-gray-300 transition-colors"
               style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
-              <Rss size={16} />
-              Explore News Feed
-              <ArrowRight size={14} />
+              Review Donation Details
             </Link>
           </div>
 
-          {/* Manage subscription note */}
           <p className="mt-8 text-xs text-gray-400" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            To manage or cancel your subscription, email{" "}
-            <a href="mailto:support@cubitlogic.com" className="text-[#0099CC] hover:underline">support@cubitlogic.com</a>
-            {" "}or visit your Stripe billing portal.
+            To stop future monthly donations or get help with a payment, contact your payment provider or email{" "}
+            <a href="mailto:support@cubitlogic.com" className="text-[#0099CC] hover:underline">
+              support@cubitlogic.com
+            </a>
+            .
           </p>
         </div>
       </section>

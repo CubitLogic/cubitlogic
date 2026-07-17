@@ -1,19 +1,12 @@
 import { Link, useParams } from "wouter";
-import { ArrowLeft, ArrowRight, ChevronRight, Clock, Lock, Sparkles, Target, Zap } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronRight, Clock, Sparkles, Target } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getCourseModule, courseModules } from "@/lib/promptCourseContent";
-import { useAuth } from "@/_core/hooks/useAuth";
-import { trpc } from "@/lib/trpc";
 
 export default function PromptModule() {
   const params = useParams<{ id: string }>();
   const mod = getCourseModule(params.id);
-  const { isAuthenticated } = useAuth();
-  const { data: subData } = trpc.subscription.status.useQuery(undefined, {
-    enabled: isAuthenticated,
-  });
-  const isPro = subData?.isPro ?? false;
 
   if (!mod) {
     return (
@@ -35,7 +28,6 @@ export default function PromptModule() {
     );
   }
 
-  const isLocked = mod.isPro && !isPro;
   const currentIndex = courseModules.findIndex((m) => m.id === mod.id);
   const prevModule = currentIndex > 0 ? courseModules[currentIndex - 1] : null;
   const nextModule = currentIndex < courseModules.length - 1 ? courseModules[currentIndex + 1] : null;
@@ -72,16 +64,9 @@ export default function PromptModule() {
                 >
                   Module {mod.number} of {courseModules.length}
                 </span>
-                {!mod.isPro && (
-                  <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ color: "#10b981", backgroundColor: "#10b98115", fontFamily: "'Space Grotesk', sans-serif" }}>
-                    Free
-                  </span>
-                )}
-                {mod.isPro && (
-                  <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ color: "#6B21FF", backgroundColor: "#6B21FF15", fontFamily: "'Space Grotesk', sans-serif" }}>
-                    Pro
-                  </span>
-                )}
+                <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ color: "#10b981", backgroundColor: "#10b98115", fontFamily: "'Space Grotesk', sans-serif" }}>
+                  Free
+                </span>
                 <div className="flex items-center gap-1 text-gray-400">
                   <Clock size={12} />
                   <span className="text-xs" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{mod.duration}</span>
@@ -101,42 +86,8 @@ export default function PromptModule() {
         </div>
       </section>
 
-      {/* Locked state */}
-      {isLocked ? (
-        <section className="py-20">
-          <div className="container max-w-2xl text-center">
-            <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: "#6B21FF15" }}>
-              <Lock size={32} style={{ color: "#6B21FF" }} />
-            </div>
-            <h2 className="text-2xl font-black text-gray-900 mb-3" style={{ fontFamily: "'Orbitron', sans-serif" }}>
-              Pro Module
-            </h2>
-            <p className="text-gray-500 mb-8 leading-relaxed" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              This module is part of the Pro curriculum. Upgrade to unlock all 7 modules, plus unlimited AI Tutor access and the full personalized news feed.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link
-                href="/pricing"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold text-sm transition-all duration-200 hover:opacity-90 active:scale-95"
-                style={{ backgroundColor: "#6B21FF", fontFamily: "'Space Grotesk', sans-serif" }}
-              >
-                <Zap size={15} />
-                Upgrade to Pro — $5/month
-              </Link>
-              <Link
-                href="/prompt-engineering"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm border border-gray-200 text-gray-700 hover:border-gray-400 transition-all bg-white"
-                style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-              >
-                <ArrowLeft size={14} />
-                Back to Course
-              </Link>
-            </div>
-          </div>
-        </section>
-      ) : (
-        /* Module content */
-        <section className="py-12">
+      {/* Module content */}
+      <section className="py-12">
           <div className="container max-w-4xl">
             <div className="space-y-12">
               {mod.sections.map((section, sIdx) => (
@@ -254,17 +205,12 @@ export default function PromptModule() {
               {nextModule ? (
                 <Link
                   href={`/prompt-engineering/${nextModule.id}`}
-                  className={`flex items-center gap-2 text-sm font-semibold transition-colors ${
-                    nextModule.isPro && !isPro ? "text-gray-400 cursor-default" : "hover:opacity-80"
-                  }`}
-                  style={{ color: nextModule.isPro && !isPro ? undefined : mod.color, fontFamily: "'Space Grotesk', sans-serif" }}
+                  className="flex items-center gap-2 text-sm font-semibold transition-colors hover:opacity-80"
+                  style={{ color: mod.color, fontFamily: "'Space Grotesk', sans-serif" }}
                 >
                   <div className="text-right">
                     <div className="text-xs text-gray-400">Next</div>
-                    <div className="flex items-center gap-1">
-                      {nextModule.title}
-                      {nextModule.isPro && !isPro && <Lock size={11} />}
-                    </div>
+                    <div>{nextModule.title}</div>
                   </div>
                   <ArrowRight size={14} />
                 </Link>
@@ -283,8 +229,7 @@ export default function PromptModule() {
               )}
             </div>
           </div>
-        </section>
-      )}
+      </section>
 
       <Footer />
     </div>
