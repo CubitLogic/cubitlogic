@@ -212,14 +212,22 @@ const normalizeToolChoice = (
   return toolChoice;
 };
 
-const resolveApiUrl = () =>
-  ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
-    ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`
-    : "https://forge.manus.im/v1/chat/completions";
+const resolveApiUrl = (path: string) => {
+  const base = ENV.llmApiUrl.trim().replace(/\/$/, "");
+  if (!base) {
+    throw new Error("AI Tutor provider URL is not configured");
+  }
+  // Gemini's OpenAI-compatible endpoint already includes its version segment
+  // (`.../v1beta/openai`), so appending `/v1` would produce an invalid URL.
+  const versionedBase = base.endsWith("/v1") || base.endsWith("/openai")
+    ? base
+    : `${base}/v1`;
+  return `${versionedBase}/${path}`;
+};
 
 const assertApiKey = () => {
-  if (!ENV.forgeApiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
+  if (!ENV.llmApiKey) {
+    throw new Error("AI Tutor provider key is not configured");
   }
 };
 
@@ -362,9 +370,11 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     messages: messages.map(normalizeMessage),
   };
 
-  if (model) {
-    payload.model = model;
+  const resolvedModel = model ?? ENV.llmModel;
+  if (!resolvedModel) {
+    throw new Error("AI Tutor model is not configured");
   }
+  payload.model = resolvedModel;
 
   if (tools && tools.length > 0) {
     payload.tools = tools;
@@ -401,11 +411,11 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
-  const response = await fetchWithBackoff(resolveApiUrl(), {
+  const response = await fetchWithBackoff(resolveApiUrl("chat/completions"), {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
+      authorization: `Bearer ${ENV.llmApiKey}`,
     },
     body: JSON.stringify(payload),
   });
@@ -435,12 +445,10 @@ export type ModelsResponse = {
 export async function listLLMModels(): Promise<ModelsResponse> {
   assertApiKey();
 
-  const url = ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
-    ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/models`
-    : "https://forge.manus.im/v1/models";
+  const url = resolveApiUrl("models");
 
   const response = await fetchWithBackoff(url, {
-    headers: { authorization: `Bearer ${ENV.forgeApiKey}` },
+    headers: { authorization: `Bearer ${ENV.llmApiKey}` },
   });
 
   if (!response.ok) {

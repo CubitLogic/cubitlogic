@@ -12,10 +12,40 @@ import { eq, and } from "drizzle-orm";
 import { newsRouter } from "./newsRouter";
 import { paypalRouter } from "./paypalRouter";
 import { notificationRouter, alertOwner } from "./notificationRouter";
+import { createHash } from "node:crypto";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-06-24.dahlia" });
-const PRICE_ID = process.env.STRIPE_PRICE_ID!;
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const stripe = stripeSecretKey
+  ? new Stripe(stripeSecretKey, { apiVersion: "2026-06-24.dahlia" })
+  : null;
+const PRICE_ID = process.env.STRIPE_PRICE_ID;
 const FREE_DAILY_LIMIT = 5;
+const ANONYMOUS_CHAT_COOLDOWN_MS = 8_000;
+
+type AnonymousUsage = { date: string; count: number; lastRequestAt: number };
+const anonymousUsage = new Map<string, AnonymousUsage>();
+
+function anonymousClientId(ctx: TrpcContext) {
+  const forwarded = ctx.req.headers["x-forwarded-for"];
+  const source = Array.isArray(forwarded)
+    ? forwarded[0] ?? ctx.req.ip ?? "unknown"
+    : forwarded?.split(",")[0]?.trim() || ctx.req.ip || "unknown";
+  return createHash("sha256").update(source).digest("hex");
+}
+
+function getAnonymousUsage(ctx: TrpcContext) {
+  const key = anonymousClientId(ctx);
+  const date = todayStr();
+  const existing = anonymousUsage.get(key);
+  if (!existing || existing.date !== date) {
+    return { key, usage: { date, count: 0, lastRequestAt: 0 } };
+  }
+  return { key, usage: existing };
+}
+
+function saveAnonymousUsage(key: string, usage: AnonymousUsage) {
+  anonymousUsage.set(key, usage);
+}
 
 const QUANTUM_SYSTEM_PROMPT = `You are the Cubit Logic AI Tutor, an expert in quantum computing, quantum mechanics, and quantum artificial intelligence. You are embedded on CubitLogic.com, an educational website dedicated to making quantum intelligence accessible to everyone.
 
@@ -28,36 +58,6 @@ Keep responses concise but complete — aim for 2-4 paragraphs. Use Unicode nota
 // Get today's date string in YYYY-MM-DD format
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
-}
-
-const anonymousAiUsage = new Map<string, { date: string; count: number }>();
-
-function getAnonymousKey(ctx: TrpcContext) {
-  const forwardedFor = ctx.req.headers["x-forwarded-for"];
-  const firstForwardedIp = Array.isArray(forwardedFor)
-    ? forwardedFor[0]
-    : forwardedFor?.split(",")[0]?.trim();
-  const ip = firstForwardedIp || ctx.req.ip || ctx.req.socket.remoteAddress || "unknown";
-  const userAgent = ctx.req.headers["user-agent"] || "unknown-agent";
-  return `${ip}:${userAgent}`;
-}
-
-function getAnonymousUsage(ctx: TrpcContext) {
-  const key = getAnonymousKey(ctx);
-  const today = todayStr();
-  const record = anonymousAiUsage.get(key);
-
-  if (!record || record.date !== today) {
-    anonymousAiUsage.set(key, { date: today, count: 0 });
-    return { key, count: 0 };
-  }
-
-  return { key, count: record.count };
-}
-
-function incrementAnonymousUsage(ctx: TrpcContext) {
-  const { key, count } = getAnonymousUsage(ctx);
-  anonymousAiUsage.set(key, { date: todayStr(), count: count + 1 });
 }
 
 export const newsletterRouter = router({
@@ -99,7 +99,7 @@ export const appRouter = router({
     // Get current usage status for the logged-in user (or anonymous)
     usageStatus: publicProcedure.query(async ({ ctx }: { ctx: TrpcContext }) => {
       if (!ctx.user) {
-        const usage = getAnonymousUsage(ctx);
+        const { usage } = getAnonymousUsage(ctx);
         return {
           isPro: false,
           usedToday: usage.count,
@@ -152,12 +152,24 @@ export const appRouter = router({
           }
         }
 
+        // Anonymous visitors are counted by a server-side limiter below.
+
+        // Enforce an in-memory server-side limit for anonymous visitors so
+        // clearing browser storage cannot bypass the Gemini free-tier guard.
         if (!ctx.user) {
-          const usage = getAnonymousUsage(ctx);
-          if (usage.count >= FREE_DAILY_LIMIT) {
+          const { key, usage } = getAnonymousUsage(ctx);
+          const now = Date.now();
+          if (
+            usage.count >= FREE_DAILY_LIMIT ||
+            now - usage.lastRequestAt < ANONYMOUS_CHAT_COOLDOWN_MS
+          ) {
             return { reply: null, limitReached: true };
           }
-          incrementAnonymousUsage(ctx);
+          saveAnonymousUsage(key, {
+            ...usage,
+            count: usage.count + 1,
+            lastRequestAt: now,
+          });
         }
 
         const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
@@ -183,6 +195,9 @@ export const appRouter = router({
 
     // Create Stripe checkout session for Pro subscription
     createCheckout: protectedProcedure.mutation(async ({ ctx }: { ctx: TrpcContext & { user: NonNullable<TrpcContext["user"]> } }) => {
+      if (!stripe || !PRICE_ID) {
+        throw new Error("Payments are not configured for this deployment");
+      }
       const origin = (ctx.req.headers.origin as string) || "https://www.cubitlogic.com";
 
       const session = await stripe.checkout.sessions.create({
@@ -206,6 +221,9 @@ export const appRouter = router({
 
     // Create Stripe billing portal session to manage/cancel subscription
     createPortal: protectedProcedure.mutation(async ({ ctx }: { ctx: TrpcContext & { user: NonNullable<TrpcContext["user"]> } }) => {
+      if (!stripe) {
+        throw new Error("Payments are not configured for this deployment");
+      }
       const origin = (ctx.req.headers.origin as string) || "https://www.cubitlogic.com";
       const db = await getDb();
       if (!db) throw new Error("Database unavailable");

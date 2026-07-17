@@ -43,7 +43,12 @@ pnpm start
 
 Rotate the Stripe webhook secret that appeared in the original export. Do not reuse it.
 
-Anonymous AI Tutor limits are still not production-grade. Logged-in free users are limited in the database, but anonymous visitors can still bypass limits unless you add a server-side anonymous/session/IP limiter.
+The AI Tutor supports Gemini's OpenAI-compatible API. Add `GEMINI_API_KEY` in
+your host's secrets panel to use Gemini Flash Lite; the key is never sent to a
+browser. Anonymous visitors are limited server-side to five questions per day
+per IP hash, with an eight-second cooldown. That limiter is in-memory, so use
+Redis or a database-backed limiter if the app is later scaled to multiple
+instances.
 
 ## Recommended host
 
@@ -53,7 +58,10 @@ Because this app has an Express backend, tRPC routes, Stripe/PayPal webhooks, AI
 
 ## Verification status
 
-This patched copy was inspected and modified offline. A full `pnpm install`, `pnpm run check`, and `pnpm run build` could not be executed in this environment because the package manager/dependencies could not be downloaded. Run those commands on your machine or host before pointing live traffic at it.
+Validated locally on Windows with Node.js 24.18.0 and the repository-pinned
+pnpm 10.4.1 on July 16, 2026. `pnpm check`, `pnpm test`, and `pnpm build`
+all pass. Repeat these commands on the production host before pointing live
+traffic at it.
 
 ## Still needs real configuration
 
@@ -70,5 +78,6 @@ Set these in your host's environment/secrets panel:
 - `STRIPE_WEBHOOK_SECRET`
 - `PAYPAL_CLIENT_ID`
 - `PAYPAL_CLIENT_SECRET`
+- `GEMINI_API_KEY`
 
 Do not commit real values. Ever. Secrets in GitHub are just tiny public disasters wearing sunglasses.

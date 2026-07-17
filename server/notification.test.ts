@@ -1,4 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { getDb } from "./db";
+import { notifyOwner } from "./_core/notification";
+import {
+  alertOwner,
+  createBroadcastNotification,
+  createNotification,
+} from "./notificationRouter";
 
 // Mock the database module
 vi.mock("./db", () => ({
@@ -21,10 +28,7 @@ describe("Notification Router Helpers", () => {
     });
     const mockDb = { insert: mockInsert };
 
-    const { getDb } = await import("./db");
     (getDb as ReturnType<typeof vi.fn>).mockResolvedValue(mockDb);
-
-    const { createNotification } = await import("./notificationRouter");
 
     await createNotification({
       userId: 1,
@@ -41,10 +45,7 @@ describe("Notification Router Helpers", () => {
     const mockInsert = vi.fn().mockReturnValue({ values: mockValues });
     const mockDb = { insert: mockInsert };
 
-    const { getDb } = await import("./db");
     (getDb as ReturnType<typeof vi.fn>).mockResolvedValue(mockDb);
-
-    const { createBroadcastNotification } = await import("./notificationRouter");
 
     await createBroadcastNotification({
       title: "Broadcast Test",
@@ -63,9 +64,6 @@ describe("Notification Router Helpers", () => {
   });
 
   it("alertOwner calls notifyOwner with title and content", async () => {
-    const { notifyOwner } = await import("./_core/notification");
-    const { alertOwner } = await import("./notificationRouter");
-
     await alertOwner("Test Alert", "Something happened");
 
     expect(notifyOwner).toHaveBeenCalledWith({
@@ -75,10 +73,7 @@ describe("Notification Router Helpers", () => {
   });
 
   it("alertOwner does not throw when notifyOwner fails", async () => {
-    const { notifyOwner } = await import("./_core/notification");
     (notifyOwner as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Service down"));
-
-    const { alertOwner } = await import("./notificationRouter");
 
     // Should not throw
     await expect(alertOwner("Fail Test", "Should not crash")).resolves.toBeUndefined();

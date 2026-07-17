@@ -5,34 +5,33 @@ import { users } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { createNotification, alertOwner } from "./notificationRouter";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-06-24.dahlia" });
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const stripe = stripeSecretKey
+  ? new Stripe(stripeSecretKey, { apiVersion: "2026-06-24.dahlia" })
+  : null;
 
 export function registerStripeWebhook(app: Express) {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!stripe || !webhookSecret) {
+    console.warn("[Webhook] Stripe webhook is not configured; webhook processing is disabled");
+    app.post("/api/stripe/webhook", (_req: Request, res: Response) => {
+      res.status(503).send("Stripe webhook is not configured for this deployment");
+    });
+    return;
+  }
+
   // NOTE: express.raw({ type: 'application/json' }) is registered in index.ts BEFORE express.json()
   // so req.body here is a Buffer for this route
   app.post("/api/stripe/webhook", async (req: Request, res: Response) => {
     const sig = req.headers["stripe-signature"] as string;
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
     let event: Stripe.Event;
 
-    if (!webhookSecret) {
-      console.error("[Webhook] STRIPE_WEBHOOK_SECRET is not configured");
-      res.status(500).send("Webhook secret is not configured");
-      return;
-    }
-
-    if (!sig) {
-      console.error("[Webhook] Missing Stripe signature header");
-      res.status(400).send("Missing Stripe signature");
-      return;
-    }
-
     try {
+      if (!sig) throw new Error("Missing Stripe signature");
       event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
     } catch (err) {
       console.error("[Webhook] Signature verification failed:", err);
-      res.status(400).send(`Webhook Error: ${err instanceof Error ? err.message : "Unknown"}`);
+      res.status(400).send("Webhook signature verification failed");
       return;
     }
 
