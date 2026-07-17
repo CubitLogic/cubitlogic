@@ -58,7 +58,10 @@ Because this app has an Express backend, tRPC routes, Stripe/PayPal webhooks, AI
 
 ## Verification status
 
-This patched copy was inspected and modified offline. A full `pnpm install`, `pnpm run check`, and `pnpm run build` could not be executed in this environment because the package manager/dependencies could not be downloaded. Run those commands on your machine or host before pointing live traffic at it.
+Validated locally on Windows with Node.js 24.18.0 and the repository-pinned
+pnpm 10.4.1 on July 16, 2026. `pnpm check`, `pnpm test`, and `pnpm build`
+all pass. Repeat these commands on the production host before pointing live
+traffic at it.
 
 ## Still needs real configuration
 
