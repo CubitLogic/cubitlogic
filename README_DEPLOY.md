@@ -5,8 +5,9 @@ This archive is patched for safer independent deployment.
 ## What was fixed
 
 - Removed the hardcoded Stripe webhook secret fallback.
-- Stripe checkout now uses the backend checkout session so subscriptions are tied to signed-in users.
-- Footer support link now routes to `/pricing` instead of bypassing account linking.
+- Stripe checkout now creates a clearly labeled voluntary $5 monthly donation and works without a CubitLogic account.
+- Stripe and PayPal donations do not grant membership, unlock content, or change AI Tutor limits.
+- Footer and navigation support links now route to `/support`; the old `/pricing` route remains available only for compatibility.
 - Replaced Manus storage image references with local `/assets/...` files.
 - Added optimized local logo, favicon, hero background, and social card assets.
 - Added Open Graph/Twitter metadata, `robots.txt`, and `sitemap.xml`.
@@ -50,11 +51,9 @@ per IP hash, with an eight-second cooldown. That limiter is in-memory, so use
 Redis or a database-backed limiter if the app is later scaled to multiple
 instances.
 
-## Recommended host
+## Current host
 
-Because this app has an Express backend, tRPC routes, Stripe/PayPal webhooks, AI calls, and a MySQL database, use a full-stack Node host such as Render, Railway, Fly.io, or a VPS. A static-only host is not enough unless you remove/replace the backend features.
-
-`render.yaml` and `Dockerfile` are included as starting points.
+The production site runs as a full-stack Node app in GoDaddy Web Apps. A static-only host is not enough because the app includes an Express backend, tRPC routes, Stripe/PayPal webhooks, AI calls, and a MySQL database.
 
 ## Verification status
 
@@ -74,7 +73,6 @@ Set these in your host's environment/secrets panel:
 - `OAUTH_SERVER_URL`
 - `OWNER_OPEN_ID`
 - `STRIPE_SECRET_KEY`
-- `STRIPE_PRICE_ID`
 - `STRIPE_WEBHOOK_SECRET`
 - `PAYPAL_CLIENT_ID`
 - `PAYPAL_CLIENT_SECRET`
