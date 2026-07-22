@@ -51,6 +51,40 @@ per IP hash, with an eight-second cooldown. That limiter is in-memory, so use
 Redis or a database-backed limiter if the app is later scaled to multiple
 instances.
 
+For a reversible Microsoft Foundry trial, add these **GoDaddy secrets** (never
+to the browser or GitHub):
+
+- `FOUNDRY_PROJECT_ENDPOINT` — the endpoint copied from the Foundry project
+  Overview page, such as `https://YOUR-RESOURCE.services.ai.azure.com/api/projects/YOUR-PROJECT`
+- `FOUNDRY_API_KEY` — an API key for that Foundry resource
+- `FOUNDRY_MODEL` — the deployed model name
+- `CUBIT_AI_DAILY_REQUEST_LIMIT=25` — adjust lower for an initial trial
+- `CUBIT_AI_MAX_OUTPUT_TOKENS=600` — keeps answers concise and costs bounded
+
+When those three Foundry values are present, CubitAI uses Foundry's
+OpenAI-compatible Responses API. The visible page does not change. To stop all
+Foundry/Gemini calls immediately, set `CUBIT_AI_ENABLED=false` in GoDaddy and
+redeploy; the chat displays its existing CubitLogic.com fallback instead. The
+application cap is per running app process and is not a substitute for an Azure
+Cost Management budget and alert.
+
+To use the existing **QubitAI Foundry agent itself** instead of calling a model
+directly, use its active Responses-protocol endpoint and a non-personal server
+identity:
+
+- `FOUNDRY_AGENT_RESPONSES_ENDPOINT` — copy this from Foundry → QubitAI →
+  Details → Responses protocol.
+- `FOUNDRY_TENANT_ID`, `FOUNDRY_CLIENT_ID`, and `FOUNDRY_CLIENT_SECRET` — an
+  existing Microsoft Entra application identity used by GoDaddy, assigned the
+  **Foundry Agent Consumer** role on the Foundry project.
+
+The agent endpoint is the more faithful option: it runs the agent's own Foundry
+instructions and configuration. CubitLogic obtains a short-lived Entra access
+token server-side, never in a visitor's browser. Do not use a personal login
+token; it expires and would tie production traffic to your account. If these
+agent values are absent, the app keeps using the configured Gemini/Azure model
+provider instead.
+
 ## Current host
 
 The production site runs as a full-stack Node app in GoDaddy Web Apps. A static-only host is not enough because the app includes an Express backend, tRPC routes, Stripe/PayPal webhooks, AI calls, and a MySQL database.

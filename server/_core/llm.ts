@@ -225,6 +225,17 @@ const resolveApiUrl = (path: string) => {
   return `${versionedBase}/${path}`;
 };
 
+const resolveResponsesApiUrl = (path: string) => {
+  const base = ENV.llmApiUrl.trim().replace(/\/$/, "");
+  if (!base) {
+    throw new Error("AI Tutor provider URL is not configured");
+  }
+  const versionedBase = base.endsWith("/openai/v1")
+    ? base
+    : `${base}/openai/v1`;
+  return `${versionedBase}/${path}`;
+};
+
 const assertApiKey = () => {
   if (!ENV.llmApiKey) {
     throw new Error("AI Tutor provider key is not configured");
@@ -237,6 +248,62 @@ const providerAuthHeaders = (): Record<string, string> => {
     return { "api-key": ENV.llmApiKey };
   }
   return { authorization: `Bearer ${ENV.llmApiKey}` };
+};
+
+let foundryAgentTokenCache: { value: string; expiresAt: number } | undefined;
+
+const foundryAgentHeaders = async (): Promise<Record<string, string>> => {
+  if (ENV.foundryAgentAccessToken) {
+    return { authorization: `Bearer ${ENV.foundryAgentAccessToken}` };
+  }
+
+  if (
+    !ENV.foundryTenantId ||
+    !ENV.foundryClientId ||
+    !ENV.foundryClientSecret
+  ) {
+    throw new Error("Foundry agent credentials are not configured");
+  }
+
+  if (
+    foundryAgentTokenCache &&
+    foundryAgentTokenCache.expiresAt > Date.now() + 60_000
+  ) {
+    return { authorization: `Bearer ${foundryAgentTokenCache.value}` };
+  }
+
+  const tokenResponse = await fetch(
+    `https://login.microsoftonline.com/${encodeURIComponent(ENV.foundryTenantId)}/oauth2/v2.0/token`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: ENV.foundryClientId,
+        client_secret: ENV.foundryClientSecret,
+        grant_type: "client_credentials",
+        scope: "https://ai.azure.com/.default",
+      }),
+    }
+  );
+
+  if (!tokenResponse.ok) {
+    throw new Error(
+      `Foundry token request failed: ${tokenResponse.status} ${tokenResponse.statusText}`
+    );
+  }
+
+  const token = (await tokenResponse.json()) as {
+    access_token?: string;
+    expires_in?: number;
+  };
+  if (!token.access_token) {
+    throw new Error("Foundry token response did not include an access token");
+  }
+  foundryAgentTokenCache = {
+    value: token.access_token,
+    expiresAt: Date.now() + Math.max(60, token.expires_in ?? 300) * 1000,
+  };
+  return { authorization: `Bearer ${token.access_token}` };
 };
 
 const normalizeResponseFormat = ({
@@ -324,7 +391,12 @@ const fetchWithBackoff = async (
   for (let attempt = 0; attempt <= RETRY_MAX_RETRIES; attempt++) {
     try {
       const response = await fetch(url, init);
-      if (response.ok || attempt === RETRY_MAX_RETRIES) {
+      // Do not retry client-side configuration or content errors. In
+      // particular, retrying a rejected request wastes time and can make a
+      // quota problem look more expensive than it is.
+      const retryable =
+        response.status === 408 || response.status === 429 || response.status >= 500;
+      if (response.ok || !retryable || attempt === RETRY_MAX_RETRIES) {
         return response;
       }
 
@@ -355,8 +427,150 @@ const fetchWithBackoff = async (
     : new Error("LLM request failed after exhausting retries");
 };
 
+const messageToText = (message: Message): string =>
+  ensureArray(message.content)
+    .map(part => (typeof part === "string" ? part : part.type === "text" ? part.text : ""))
+    .filter(Boolean)
+    .join("\n");
+
+type ResponsesApiPayload = {
+  id?: string;
+  created_at?: number;
+  model?: string;
+  output_text?: string;
+  output?: Array<{
+    type?: string;
+    content?: Array<{ type?: string; text?: string }>;
+  }>;
+};
+
+const responseText = (response: ResponsesApiPayload) => {
+  if (response.output_text) return response.output_text;
+  return (response.output ?? [])
+    .flatMap(item => item.content ?? [])
+    .filter(item => item.type === "output_text" && typeof item.text === "string")
+    .map(item => item.text as string)
+    .join("\n");
+};
+
+const invokeResponsesApi = async (params: InvokeParams): Promise<InvokeResult> => {
+  const resolvedModel = params.model ?? ENV.llmModel;
+  if (!resolvedModel) {
+    throw new Error("AI Tutor model is not configured");
+  }
+
+  const systemInstruction = params.messages
+    .filter(message => message.role === "system")
+    .map(messageToText)
+    .filter(Boolean)
+    .join("\n\n");
+  const input = params.messages
+    .filter(message => message.role === "user" || message.role === "assistant")
+    .map(message => ({ role: message.role, content: messageToText(message) }))
+    .filter(message => message.content);
+
+  const maxOutputTokens =
+    params.max_tokens ?? params.maxTokens ?? ENV.aiMaxOutputTokens;
+  const response = await fetchWithBackoff(resolveResponsesApiUrl("responses"), {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      ...providerAuthHeaders(),
+    },
+    body: JSON.stringify({
+      model: resolvedModel,
+      input,
+      ...(systemInstruction ? { instructions: systemInstruction } : {}),
+      max_output_tokens: maxOutputTokens,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Foundry Responses invoke failed: ${response.status} ${response.statusText} – ${errorText}`
+    );
+  }
+
+  const result = (await response.json()) as ResponsesApiPayload;
+  return {
+    id: result.id ?? "foundry-response",
+    created: result.created_at ?? Math.floor(Date.now() / 1000),
+    model: result.model ?? resolvedModel,
+    choices: [
+      {
+        index: 0,
+        message: { role: "assistant", content: responseText(result) },
+        finish_reason: "stop",
+      },
+    ],
+  };
+};
+
+const agentConversationInput = (messages: Message[]) =>
+  messages
+    .filter(message => message.role === "user" || message.role === "assistant")
+    .map(message => `${message.role === "assistant" ? "Tutor" : "Learner"}: ${messageToText(message)}`)
+    .filter(Boolean)
+    .join("\n\n");
+
+const resolveFoundryAgentUrl = () => {
+  const endpoint = ENV.llmApiUrl.trim();
+  if (!endpoint) throw new Error("Foundry agent endpoint is not configured");
+  return endpoint.includes("?")
+    ? `${endpoint}&api-version=v1`
+    : `${endpoint}?api-version=v1`;
+};
+
+const invokeFoundryAgent = async (params: InvokeParams): Promise<InvokeResult> => {
+  const response = await fetchWithBackoff(resolveFoundryAgentUrl(), {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      ...(await foundryAgentHeaders()),
+    },
+    // The Foundry agent owns its own instructions/model. The site only sends
+    // the learner's transcript, so updating the Foundry agent stays separate
+    // from deploying the website.
+    body: JSON.stringify({
+      input: agentConversationInput(params.messages),
+      stream: false,
+      store: false,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Foundry agent invoke failed: ${response.status} ${response.statusText} – ${errorText}`
+    );
+  }
+
+  const result = (await response.json()) as ResponsesApiPayload;
+  return {
+    id: result.id ?? "foundry-agent-response",
+    created: result.created_at ?? Math.floor(Date.now() / 1000),
+    model: result.model ?? "foundry-agent",
+    choices: [
+      {
+        index: 0,
+        message: { role: "assistant", content: responseText(result) },
+        finish_reason: "stop",
+      },
+    ],
+  };
+};
+
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
+  if (ENV.llmProtocol === "agent-responses") {
+    return invokeFoundryAgent(params);
+  }
+
   assertApiKey();
+
+  if (ENV.llmProtocol === "responses") {
+    return invokeResponsesApi(params);
+  }
 
   const {
     messages,
@@ -451,9 +665,15 @@ export type ModelsResponse = {
 };
 
 export async function listLLMModels(): Promise<ModelsResponse> {
+  if (ENV.llmProtocol === "agent-responses") {
+    throw new Error("The Foundry agent endpoint does not expose a model list");
+  }
   assertApiKey();
 
-  const url = resolveApiUrl("models");
+  const url =
+    ENV.llmProtocol === "responses"
+      ? resolveResponsesApiUrl("models")
+      : resolveApiUrl("models");
 
   const response = await fetchWithBackoff(url, {
     headers: providerAuthHeaders(),

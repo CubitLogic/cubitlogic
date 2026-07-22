@@ -13,6 +13,7 @@ import { newsRouter } from "./newsRouter";
 import { paypalRouter } from "./paypalRouter";
 import { notificationRouter, alertOwner } from "./notificationRouter";
 import { createHash } from "node:crypto";
+import { ENV } from "./_core/env";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const stripe = stripeSecretKey
@@ -23,6 +24,7 @@ const ANONYMOUS_CHAT_COOLDOWN_MS = 8_000;
 
 type AnonymousUsage = { date: string; count: number; lastRequestAt: number };
 const anonymousUsage = new Map<string, AnonymousUsage>();
+let siteAiUsage: { date: string; count: number } = { date: "", count: 0 };
 
 function anonymousClientId(ctx: TrpcContext) {
   const forwarded = ctx.req.headers["x-forwarded-for"];
@@ -44,6 +46,16 @@ function getAnonymousUsage(ctx: TrpcContext) {
 
 function saveAnonymousUsage(key: string, usage: AnonymousUsage) {
   anonymousUsage.set(key, usage);
+}
+
+function reserveSiteAiRequest() {
+  const date = todayStr();
+  if (siteAiUsage.date !== date) {
+    siteAiUsage = { date, count: 0 };
+  }
+  if (siteAiUsage.count >= ENV.aiDailySiteLimit) return false;
+  siteAiUsage.count += 1;
+  return true;
 }
 
 const QUANTUM_SYSTEM_PROMPT = `You are CubitAI, the Cubit Logic AI Tutor. You are embedded on CubitLogic.com, an educational website dedicated to making quantum intelligence accessible to everyone.
@@ -132,6 +144,12 @@ export const appRouter = router({
         })).max(20).optional().default([]),
       }))
       .mutation(async ({ input, ctx }: { input: { message: string; history: { role: "user" | "assistant"; content: string }[] }; ctx: TrpcContext }) => {
+        // This is intentionally checked before any usage is reserved. A
+        // paused or unconfigured provider should fall back cleanly and never
+        // consume the site's trial allowance.
+        if (!ENV.aiEnabled || !ENV.aiConfigured) {
+          return { reply: null, limitReached: false };
+        }
         const db = await getDb();
 
         // Enforce the same usage limit for every logged-in user. Recurring
@@ -175,13 +193,24 @@ export const appRouter = router({
           });
         }
 
+        // A second, site-wide cap prevents a surge of visitors from turning a
+        // small Foundry trial into an unexpected bill. It resets at UTC
+        // midnight and can be changed or disabled at the host with no code
+        // rollback.
+        if (!reserveSiteAiRequest()) {
+          return { reply: null, limitReached: true };
+        }
+
         const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
           { role: "system", content: QUANTUM_SYSTEM_PROMPT },
           ...input.history.map((h) => ({ role: h.role, content: h.content })),
           { role: "user", content: input.message },
         ];
 
-        const response = await invokeLLM({ messages });
+        const response = await invokeLLM({
+          messages,
+          maxTokens: ENV.aiMaxOutputTokens,
+        });
         const content = (response as { choices?: { message?: { content?: string } }[] }).choices?.[0]?.message?.content ?? "I'm having trouble responding right now. Please try again.";
         return { reply: content, limitReached: false };
       }),
