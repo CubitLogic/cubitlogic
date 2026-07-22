@@ -231,6 +231,14 @@ const assertApiKey = () => {
   }
 };
 
+const providerAuthHeaders = (): Record<string, string> => {
+  const header = ENV.llmApiKeyHeader.trim().toLowerCase();
+  if (header === "api-key") {
+    return { "api-key": ENV.llmApiKey };
+  }
+  return { authorization: `Bearer ${ENV.llmApiKey}` };
+};
+
 const normalizeResponseFormat = ({
   responseFormat,
   response_format,
@@ -415,7 +423,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${ENV.llmApiKey}`,
+      ...providerAuthHeaders(),
     },
     body: JSON.stringify(payload),
   });
@@ -448,7 +456,7 @@ export async function listLLMModels(): Promise<ModelsResponse> {
   const url = resolveApiUrl("models");
 
   const response = await fetchWithBackoff(url, {
-    headers: { authorization: `Bearer ${ENV.llmApiKey}` },
+    headers: providerAuthHeaders(),
   });
 
   if (!response.ok) {

@@ -14,18 +14,26 @@ export const ENV = {
   llmApiUrl:
     process.env.LLM_API_URL ??
     process.env.OPENAI_BASE_URL ??
+    process.env.AZURE_OPENAI_ENDPOINT ??
     (process.env.GEMINI_API_KEY
       ? "https://generativelanguage.googleapis.com/v1beta/openai"
       : ""),
   llmApiKey:
     process.env.LLM_API_KEY ??
     process.env.OPENAI_API_KEY ??
+    process.env.AZURE_OPENAI_API_KEY ??
     process.env.GEMINI_API_KEY ??
     "",
   llmModel:
     process.env.LLM_MODEL ??
     process.env.OPENAI_MODEL ??
+    process.env.AZURE_OPENAI_DEPLOYMENT ??
     (process.env.GEMINI_API_KEY ? "gemini-3.1-flash-lite" : ""),
+  // Azure OpenAI accepts API keys in an `api-key` header. Other
+  // OpenAI-compatible providers, including Gemini, use Bearer auth.
+  llmApiKeyHeader:
+    process.env.LLM_API_KEY_HEADER ??
+    (process.env.AZURE_OPENAI_API_KEY ? "api-key" : "authorization"),
   // Retained only for optional legacy helper endpoints that return a clear
   // configuration error when no storage/notification service is attached.
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",

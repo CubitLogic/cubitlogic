@@ -78,4 +78,13 @@ Set these in your host's environment/secrets panel:
 - `PAYPAL_CLIENT_SECRET`
 - `GEMINI_API_KEY`
 
+For Azure Foundry / Azure OpenAI instead of Gemini, set these GoDaddy secrets:
+
+- `AZURE_OPENAI_ENDPOINT` (the OpenAI-compatible base endpoint ending in `/openai/v1`)
+- `AZURE_OPENAI_API_KEY`
+- `AZURE_OPENAI_DEPLOYMENT`
+
+Do not set both `LLM_API_KEY` and `AZURE_OPENAI_API_KEY` unless you explicitly
+want the generic `LLM_*` settings to take precedence.
+
 Do not commit real values. Ever. Secrets in GitHub are just tiny public disasters wearing sunglasses.

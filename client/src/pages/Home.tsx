@@ -33,7 +33,7 @@ function useFadeUp() {
 
 /* ── AI Tutor Chat ── */
 function AiTutorSection() {
-  const [messages, setMessages] = useState<{ role: "user" | "ai"; text: string; isLimitNotice?: boolean }[]>([
+  const [messages, setMessages] = useState<{ role: "user" | "ai"; text: string; isLimitNotice?: boolean; isFallback?: boolean }[]>([
     { role: "ai", text: "Hello. I'm the Cubit Logic AI Tutor. Ask me anything about quantum computing, quantum mechanics, or quantum AI — at any level." },
   ]);
   const [input, setInput] = useState("");
@@ -59,10 +59,18 @@ function AiTutorSection() {
       if (result.limitReached) {
         setMessages((m) => [...m, { role: "ai", text: "", isLimitNotice: true }]);
       } else {
-        setMessages((m) => [...m, { role: "ai", text: result.reply ?? "I'm having trouble responding right now." }]);
+        setMessages((m) => [...m, {
+          role: "ai",
+          text: result.reply ?? "CubitAI is temporarily unavailable. Your learning resources are still here.",
+          isFallback: !result.reply,
+        }]);
       }
     } catch {
-      setMessages((m) => [...m, { role: "ai", text: "I'm having trouble connecting right now. Please try again in a moment." }]);
+      setMessages((m) => [...m, {
+        role: "ai",
+        text: "CubitAI is temporarily unavailable. Your learning resources are still here.",
+        isFallback: true,
+      }]);
     } finally {
       setLoading(false);
     }
@@ -110,6 +118,17 @@ function AiTutorSection() {
                         <p className="mb-3">⚡ You've reached today's 5-question AI Tutor limit.</p>
                         <p className="mb-3 text-gray-600">The limit helps manage AI costs and keep CubitLogic free for everyone. Optional donations help us maintain and improve the site.</p>
                         <Link href="/support" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-[#050A1A] transition-all active:scale-[0.97]" style={{ background: "linear-gradient(135deg, #00E5FF 0%, #7B2FFF 100%)" }}>Support CubitLogic →</Link>
+                      </div>
+                    ) : msg.isFallback ? (
+                      <div>
+                        <p className="mb-3">{msg.text}</p>
+                        <a
+                          href="https://cubitlogic.com"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-[#050A1A] transition-all active:scale-[0.97]"
+                          style={{ background: "linear-gradient(135deg, #00E5FF 0%, #7B2FFF 100%)" }}
+                        >
+                          Explore CubitLogic.com →
+                        </a>
                       </div>
                     ) : msg.text}
                   </div>
