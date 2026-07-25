@@ -5,7 +5,7 @@
 */
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, Atom } from "lucide-react";
+import { Menu, X, Atom, Shield, UserRound } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import { trpc } from "@/lib/trpc";
 
@@ -20,17 +20,14 @@ const navLinks = [
   { label: "Support", href: "/support" },
 ];
 
-// Only show notification bell for logged-in users
-function NotificationBellWrapper() {
-  const { data: user } = trpc.auth.me.useQuery();
-  if (!user) return null;
-  return <NotificationBell />;
-}
-
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [location] = useLocation();
+  const { data: user } = trpc.auth.me.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -47,7 +44,6 @@ export default function Navbar() {
       }`}
     >
       <div className="container flex items-center justify-between h-16">
-        {/* Logo */}
         <Link href="/" className="flex items-center gap-3 group">
           <div className="relative w-9 h-9">
             <img
@@ -60,20 +56,17 @@ export default function Navbar() {
             className="font-bold text-lg tracking-wider text-gray-900"
             style={{ fontFamily: "'Orbitron', sans-serif" }}
           >
-            Cubit<span             style={{ color: "#0099CC" }}>Logic</span>
+            Cubit<span style={{ color: "#0099CC" }}>Logic</span>
           </span>
         </Link>
 
-        {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
+        <nav className="hidden md:flex items-center gap-7">
+          {navLinks.map(link => (
             <a
               key={link.href}
               href={link.href}
               className={`text-sm font-medium tracking-wide transition-colors duration-200 ${
-                location === link.href
-                  ? "text-[#0099CC]"
-                  : "text-gray-600 hover:text-gray-900"
+                location === link.href ? "text-[#0099CC]" : "text-gray-600 hover:text-gray-900"
               }`}
               style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
@@ -82,28 +75,33 @@ export default function Navbar() {
           ))}
         </nav>
 
-        {/* CTA */}
         <div className="hidden md:flex items-center gap-3">
-          <NotificationBellWrapper />
+          {user && <NotificationBell />}
+          {user?.role === "admin" && (
+            <Link
+              href="/admin"
+              aria-label="Owner dashboard"
+              className="rounded-md border border-amber-200 bg-amber-50 p-2 text-amber-700 hover:border-amber-300"
+            >
+              <Shield size={16} />
+            </Link>
+          )}
           <Link
-            href="/support"
-            className="text-sm px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:border-[#0099CC] hover:text-[#0099CC] transition-colors"
+            href={user ? "/account" : "/login"}
+            className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 transition-colors hover:border-[#0099CC] hover:text-[#0099CC]"
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
           >
-            Donate
+            <UserRound size={15} />
+            {user ? "Account" : "Sign in"}
           </Link>
-          <a
-            href="/#ai-tutor"
-            className="btn-primary px-5 py-2 rounded-md text-sm flex items-center gap-2"
-          >
+          <a href="/#ai-tutor" className="btn-primary px-5 py-2 rounded-md text-sm flex items-center gap-2">
             <Atom size={14} />
-            Ask the AI
+            Ask Qubit
           </a>
         </div>
 
-        {/* Mobile: bell + hamburger */}
         <div className="md:hidden flex items-center gap-1">
-          <NotificationBellWrapper />
+          {user && <NotificationBell />}
           <button
             className="text-gray-700 p-2"
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -114,10 +112,9 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden bg-white border-t border-gray-200 px-4 py-4 flex flex-col gap-4 shadow-lg">
-          {navLinks.map((link) => (
+        <div className="md:hidden bg-white border-t border-gray-200 px-4 py-4 flex flex-col gap-3 shadow-lg">
+          {navLinks.map(link => (
             <a
               key={link.href}
               href={link.href}
@@ -128,12 +125,28 @@ export default function Navbar() {
               {link.label}
             </a>
           ))}
+          <Link
+            href={user ? "/account" : "/login"}
+            onClick={() => setMobileOpen(false)}
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-200 px-5 py-2 text-sm font-semibold"
+          >
+            <UserRound size={15} /> {user ? "My account" : "Sign in or register"}
+          </Link>
+          {user?.role === "admin" && (
+            <Link
+              href="/admin"
+              onClick={() => setMobileOpen(false)}
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-5 py-2 text-sm font-semibold text-amber-800"
+            >
+              <Shield size={15} /> Owner dashboard
+            </Link>
+          )}
           <a
             href="/#ai-tutor"
-            className="btn-primary px-5 py-2 rounded-md text-sm text-center mt-2"
+            className="btn-primary px-5 py-2 rounded-md text-sm text-center mt-1"
             onClick={() => setMobileOpen(false)}
           >
-            Ask the AI
+            Ask Qubit
           </a>
         </div>
       )}
