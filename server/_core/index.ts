@@ -11,6 +11,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { initializeDatabase } from "../db";
+import { enforceAiRuntimeControl, registerMemberAdminRoutes } from "../memberAdminRoutes";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -50,6 +51,11 @@ async function startServer() {
   registerOAuthRoutes(app);
   registerLocalAuthRoutes(app);
   registerStripeWebhook(app);
+  registerMemberAdminRoutes(app);
+
+  // Owner-controlled runtime gate for Qubit AI. This check runs before tRPC,
+  // persists in MySQL, and therefore survives app restarts and redeployments.
+  app.use("/api/trpc", enforceAiRuntimeControl);
 
   // tRPC API
   app.use(
