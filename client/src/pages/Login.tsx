@@ -29,7 +29,7 @@ export default function Login() {
         setError(result.error || "Please try again.");
         return;
       }
-      window.location.assign("/");
+      window.location.assign("/account");
     } catch {
       setError("We could not reach Cubit Logic. Please try again.");
     } finally {
@@ -54,7 +54,7 @@ export default function Login() {
             {registering ? "Create your account" : "Welcome back"}
           </h1>
           <p className="mt-2 text-sm text-slate-500" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            {registering ? "Save your learning preferences and continue your lessons." : "Sign in to continue learning."}
+            {registering ? "Save your learning access and manage your membership." : "Sign in to your member dashboard."}
           </p>
         </div>
 
@@ -62,16 +62,16 @@ export default function Login() {
           {registering && (
             <label className="block text-sm font-medium text-slate-700">
               Name
-              <input value={name} onChange={(event) => setName(event.target.value)} required autoComplete="name" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-[#0099CC] focus:ring-2 focus:ring-[#0099CC]/15" />
+              <input value={name} onChange={event => setName(event.target.value)} required autoComplete="name" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-[#0099CC] focus:ring-2 focus:ring-[#0099CC]/15" />
             </label>
           )}
           <label className="block text-sm font-medium text-slate-700">
             Email
-            <input value={email} onChange={(event) => setEmail(event.target.value)} required type="email" autoComplete="email" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-[#0099CC] focus:ring-2 focus:ring-[#0099CC]/15" />
+            <input value={email} onChange={event => setEmail(event.target.value)} required type="email" autoComplete="email" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-[#0099CC] focus:ring-2 focus:ring-[#0099CC]/15" />
           </label>
           <label className="block text-sm font-medium text-slate-700">
             Password
-            <input value={password} onChange={(event) => setPassword(event.target.value)} required minLength={registering ? 8 : undefined} type="password" autoComplete={registering ? "new-password" : "current-password"} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-[#0099CC] focus:ring-2 focus:ring-[#0099CC]/15" />
+            <input value={password} onChange={event => setPassword(event.target.value)} required minLength={registering ? 8 : undefined} type="password" autoComplete={registering ? "new-password" : "current-password"} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-[#0099CC] focus:ring-2 focus:ring-[#0099CC]/15" />
           </label>
           {error && <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
           <button disabled={submitting} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0099CC] to-[#6B21FF] px-4 py-3 font-semibold text-white disabled:opacity-60">
@@ -79,6 +79,12 @@ export default function Login() {
             {registering ? "Create account" : "Sign in"}
           </button>
         </form>
+
+        {!registering && (
+          <p className="mt-4 text-center text-xs text-slate-500">
+            Password recovery will be activated with the site email service. For immediate account help, use the <Link href="/support" className="font-semibold text-[#0099CC] hover:underline">support page</Link>.
+          </p>
+        )}
 
         <p className="mt-6 text-center text-sm text-slate-500">
           {registering ? "Already have an account?" : "New to Cubit Logic?"}{" "}

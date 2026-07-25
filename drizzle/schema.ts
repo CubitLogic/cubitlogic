@@ -13,7 +13,7 @@ export const users = mysqlTable("users", {
   // Stripe identifiers
   stripeCustomerId: varchar("stripeCustomerId", { length: 64 }),
   stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 64 }),
-  // Cached subscription status for fast reads
+  // Cached membership status for fast reads and server-side authorization.
   subscriptionStatus: mysqlEnum("subscriptionStatus", ["free", "pro"]).default("free").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -77,3 +77,26 @@ export const notificationReads = mysqlTable("notification_reads", {
 });
 
 export type NotificationRead = typeof notificationReads.$inferSelect;
+
+// Runtime controls editable by the owner dashboard. Values are intentionally
+// simple strings so new controls can be added without a schema migration.
+export const siteSettings = mysqlTable("site_settings", {
+  key: varchar("key", { length: 64 }).primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SiteSetting = typeof siteSettings.$inferSelect;
+
+// Administrative actions are recorded so membership and safety-control
+// changes can be reviewed later without exposing secrets or private payloads.
+export const adminAuditLogs = mysqlTable("admin_audit_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  actorUserId: int("actorUserId").notNull(),
+  action: varchar("action", { length: 96 }).notNull(),
+  targetUserId: int("targetUserId"),
+  metadata: text("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AdminAuditLog = typeof adminAuditLogs.$inferSelect;
