@@ -17,8 +17,10 @@ import PromptEngineering from "./pages/PromptEngineering";
 import PromptModule from "./pages/PromptModule";
 import TopicDetail from "./pages/TopicDetail";
 import Login from "./pages/Login";
+import MemberDashboard from "./pages/MemberDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
+
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path="/" component={Home} />
@@ -29,6 +31,8 @@ function Router() {
       <Route path="/support" component={Pricing} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/login" component={Login} />
+      <Route path="/account" component={MemberDashboard} />
+      <Route path="/admin" component={AdminDashboard} />
       <Route path="/news" component={News} />
       <Route path="/success" component={Success} />
       <Route path="/hardware" component={Hardware} />
