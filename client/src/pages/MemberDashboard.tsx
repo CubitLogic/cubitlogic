@@ -4,7 +4,7 @@ import { Atom, CalendarDays, Gauge, LogOut, ShieldCheck, Sparkles, UserRound } f
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ParticleField from "@/components/ParticleField";
-import { useAuth } from "@/ _core/hooks/useAuth";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 type DashboardData = {
   user: {
