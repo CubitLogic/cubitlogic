@@ -17,7 +17,7 @@ async function paymentRuntime() {
     const config = readStripeRuntimeConfig();
     const stripe = createStripeClient(config.secretKey);
     const price = await stripe.prices.retrieve(config.priceId);
-    if (!price.active || price.type !== "recurring" || !price.recurring) {
+    if (!price.active || !price.recurring) {
       throw new Error("STRIPE_PRICE_ID is not an active recurring price");
     }
     return { config, stripe };
