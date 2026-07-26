@@ -189,7 +189,7 @@ export function registerStripeWebhook(app: Express) {
         case "invoice.paid": {
           const invoice = event.data.object as Stripe.Invoice;
           const subscriptionId = invoiceSubscriptionId(invoice);
-          if (!invoice.paid || invoice.amount_paid <= 0 || !subscriptionId) {
+          if (invoice.status !== "paid" || invoice.amount_paid <= 0 || !subscriptionId) {
             console.log(`[Webhook] Ignoring non-contribution invoice ${invoice.id}`);
             break;
           }
