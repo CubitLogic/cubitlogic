@@ -11,6 +11,28 @@ let controlTablesReady = false;
 
 type Database = NonNullable<Awaited<ReturnType<typeof getDb>>>;
 
+function firstForwardedValue(value: string | undefined): string | undefined {
+  return value?.split(",", 1)[0]?.trim();
+}
+
+export function requireSameOriginRequest(req: Request, res: Response, next: NextFunction): void {
+  const origin = req.get("origin");
+  const host = firstForwardedValue(req.get("x-forwarded-host")) ?? req.get("host");
+  const protocol = firstForwardedValue(req.get("x-forwarded-proto")) ?? req.protocol;
+
+  try {
+    if (!origin || !host || new URL(origin).origin !== new URL(`${protocol}://${host}`).origin) {
+      res.status(403).json({ error: "This administrative request must come from Cubit Logic." });
+      return;
+    }
+  } catch {
+    res.status(403).json({ error: "This administrative request must come from Cubit Logic." });
+    return;
+  }
+
+  next();
+}
+
 async function ensureControlTables(db: Database): Promise<void> {
   if (controlTablesReady) return;
 
@@ -195,7 +217,7 @@ export function registerMemberAdminRoutes(app: Express): void {
     });
   });
 
-  app.post("/api/admin/users/:userId/membership", async (req, res) => {
+  app.post("/api/admin/users/:userId/membership", requireSameOriginRequest, async (req, res) => {
     const admin = await getAdminUser(req, res);
     if (!admin) return;
 
@@ -227,7 +249,7 @@ export function registerMemberAdminRoutes(app: Express): void {
     res.json({ ok: true });
   });
 
-  app.post("/api/admin/users/:userId/role", async (req, res) => {
+  app.post("/api/admin/users/:userId/role", requireSameOriginRequest, async (req, res) => {
     const admin = await getAdminUser(req, res);
     if (!admin) return;
 
@@ -260,7 +282,7 @@ export function registerMemberAdminRoutes(app: Express): void {
     res.json({ ok: true });
   });
 
-  app.post("/api/admin/ai-enabled", async (req, res) => {
+  app.post("/api/admin/ai-enabled", requireSameOriginRequest, async (req, res) => {
     const admin = await getAdminUser(req, res);
     if (!admin) return;
     if (typeof req.body?.enabled !== "boolean") {
