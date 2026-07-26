@@ -100,3 +100,17 @@ export const adminAuditLogs = mysqlTable("admin_audit_logs", {
 });
 
 export type AdminAuditLog = typeof adminAuditLogs.$inferSelect;
+
+// Stripe retries and can deliver the same event more than once. Reserving each
+// event ID prevents repeated membership changes or duplicate notifications.
+// Failed handlers delete their reservation so Stripe can retry safely.
+export const stripeWebhookEvents = mysqlTable("stripe_webhook_events", {
+  eventId: varchar("eventId", { length: 255 }).primaryKey(),
+  eventType: varchar("eventType", { length: 96 }).notNull(),
+  livemode: int("livemode").notNull(),
+  status: mysqlEnum("status", ["processing", "processed"]).default("processing").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  processedAt: timestamp("processedAt"),
+});
+
+export type StripeWebhookEvent = typeof stripeWebhookEvents.$inferSelect;

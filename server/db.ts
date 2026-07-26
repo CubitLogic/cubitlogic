@@ -109,6 +109,14 @@ export async function initializeDatabase(): Promise<void> {
       metadata TEXT NULL,
       createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`,
+    `CREATE TABLE IF NOT EXISTS stripe_webhook_events (
+      eventId VARCHAR(255) NOT NULL PRIMARY KEY,
+      eventType VARCHAR(96) NOT NULL,
+      livemode INT NOT NULL,
+      status ENUM('processing', 'processed') NOT NULL DEFAULT 'processing',
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      processedAt TIMESTAMP NULL
+    )`,
   ];
 
   for (const statement of statements) {
