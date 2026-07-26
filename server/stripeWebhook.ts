@@ -65,19 +65,23 @@ export function registerStripeWebhook(app: Express) {
           const subscriptionId = session.subscription as string;
 
           if (userId) {
+            const parsedUserId = Number.parseInt(userId, 10);
+            if (!Number.isInteger(parsedUserId)) {
+              throw new Error("Stripe checkout metadata contains an invalid user ID");
+            }
             await db.update(users)
               .set({
                 stripeCustomerId: customerId,
                 stripeSubscriptionId: subscriptionId,
+                subscriptionStatus: "pro",
               })
-              .where(eq(users.id, parseInt(userId)));
-            console.log(`[Webhook] Recorded recurring donation for user ${userId}`);
+              .where(eq(users.id, parsedUserId));
+            console.log(`[Webhook] Activated supporter status for user ${userId}`);
 
-            // Notify the user
             await createNotification({
-              userId: parseInt(userId),
-              title: "Thank You for Donating!",
-              message: "Thank you for your voluntary monthly donation to CubitLogic. Your contribution helps fund hosting, AI usage, and new educational content; it does not purchase membership or paid access.",
+              userId: parsedUserId,
+              title: "Supporter Access Is Active",
+              message: "Thank you for supporting CubitLogic. Your account now has active supporter status and enhanced Qubit AI access while your recurring support remains active.",
               type: "subscription",
             });
           }
@@ -98,6 +102,9 @@ export function registerStripeWebhook(app: Express) {
           const subscription = event.data.object as Stripe.Subscription;
           const customerId = subscription.customer as string;
           const isActive = subscription.status === "active" || subscription.status === "trialing";
+          await db.update(users)
+            .set({ subscriptionStatus: isActive ? "pro" : "free" })
+            .where(eq(users.stripeCustomerId, customerId));
           console.log(`[Webhook] Customer ${customerId} recurring donation status: ${isActive ? "active" : subscription.status}`);
           break;
         }
@@ -106,8 +113,6 @@ export function registerStripeWebhook(app: Express) {
           const invoice = event.data.object as Stripe.Invoice;
           const customerId = invoice.customer as string;
 
-          // Find the donor so we can send a billing notice. Access is not
-          // changed because a recurring donation does not buy site benefits.
           const failedUserRows = await db.select().from(users)
             .where(eq(users.stripeCustomerId, customerId))
             .limit(1);
@@ -118,7 +123,7 @@ export function registerStripeWebhook(app: Express) {
             await createNotification({
               userId: failedUserRows[0].id,
               title: "Donation Payment Issue",
-              message: "We couldn't process your voluntary monthly donation. Please update your payment method if you'd like to continue supporting CubitLogic. Your access to CubitLogic is unchanged.",
+              message: "We couldn't process your monthly support payment. Please update your payment method to keep supporter status active. Core CubitLogic learning content remains available.",
               type: "subscription",
             });
           }

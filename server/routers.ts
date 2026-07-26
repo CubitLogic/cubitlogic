@@ -14,12 +14,12 @@ import { paypalRouter } from "./paypalRouter";
 import { notificationRouter, alertOwner } from "./notificationRouter";
 import { createHash } from "node:crypto";
 import { ENV } from "./_core/env";
+import { FREE_DAILY_LIMIT, readMemberAiAccess } from "./memberAccess";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const stripe = stripeSecretKey
   ? new Stripe(stripeSecretKey, { apiVersion: "2026-06-24.dahlia" })
   : null;
-const FREE_DAILY_LIMIT = 5;
 const ANONYMOUS_CHAT_COOLDOWN_MS = 8_000;
 
 type AnonymousUsage = { date: string; count: number; lastRequestAt: number };
@@ -127,12 +127,20 @@ export const appRouter = router({
       const db = await getDb();
       if (!db) return { isPro: false, usedToday: 0, limit: FREE_DAILY_LIMIT, remaining: FREE_DAILY_LIMIT };
 
+      const access = await readMemberAiAccess(db, ctx.user);
       const today = todayStr();
       const rows = await db.select().from(aiUsage)
         .where(and(eq(aiUsage.userId, ctx.user.id), eq(aiUsage.date, today)))
         .limit(1);
       const used = rows[0]?.count ?? 0;
-      return { isPro: false, usedToday: used, limit: FREE_DAILY_LIMIT, remaining: Math.max(0, FREE_DAILY_LIMIT - used) };
+      return {
+        isPro: ctx.user.subscriptionStatus === "pro",
+        accessEnabled: access.enabled,
+        accessMode: access.mode,
+        usedToday: used,
+        limit: access.unlimited ? null : FREE_DAILY_LIMIT,
+        remaining: access.unlimited ? null : Math.max(0, FREE_DAILY_LIMIT - used),
+      };
     }),
 
     chat: publicProcedure
@@ -152,15 +160,17 @@ export const appRouter = router({
         }
         const db = await getDb();
 
-        // Enforce the same usage limit for every logged-in user. Recurring
-        // donations do not buy additional access or change this limit.
         if (ctx.user && db) {
+          const access = await readMemberAiAccess(db, ctx.user);
+          if (!access.enabled) {
+            return { reply: null, limitReached: true, accessDisabled: true };
+          }
           const today = todayStr();
           const rows = await db.select().from(aiUsage)
             .where(and(eq(aiUsage.userId, ctx.user.id), eq(aiUsage.date, today)))
             .limit(1);
           const used = rows[0]?.count ?? 0;
-          if (used >= FREE_DAILY_LIMIT) {
+          if (!access.unlimited && used >= FREE_DAILY_LIMIT) {
             return { reply: null, limitReached: true };
           }
           // Increment usage
@@ -217,31 +227,27 @@ export const appRouter = router({
   }),
 
   subscription: router({
-    // Keep the existing response shape for older clients. The legacy billing
-    // status is informational only and never grants additional site access.
-    status: protectedProcedure.query(async () => {
+    status: protectedProcedure.query(async ({ ctx }: { ctx: TrpcContext & { user: NonNullable<TrpcContext["user"]> } }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      const rows = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+      const status = rows[0]?.subscriptionStatus ?? "free";
       return {
-        isPro: false,
-        status: "free" as const,
+        isPro: status === "pro",
+        status,
       };
     }),
 
-    // Keep the existing mutation name for client compatibility, but create a
-    // voluntary monthly donation checkout that is also available to guests.
-    createCheckout: publicProcedure.mutation(async ({ ctx }: { ctx: TrpcContext }) => {
+    createCheckout: protectedProcedure.mutation(async ({ ctx }: { ctx: TrpcContext & { user: NonNullable<TrpcContext["user"]> } }) => {
       if (!stripe) {
         throw new Error("Payments are not configured for this deployment");
       }
       const origin = (ctx.req.headers.origin as string) || "https://www.cubitlogic.com";
       const donorMetadata = {
         payment_purpose: "voluntary_monthly_donation",
-        ...(ctx.user
-          ? {
-              user_id: ctx.user.id.toString(),
-              customer_email: ctx.user.email || "",
-              customer_name: ctx.user.name || "",
-            }
-          : {}),
+        user_id: ctx.user.id.toString(),
+        customer_email: ctx.user.email || "",
+        customer_name: ctx.user.name || "",
       };
 
       const session = await stripe.checkout.sessions.create({
@@ -257,7 +263,7 @@ export const appRouter = router({
               product_data: {
                 name: "CubitLogic Monthly Donation",
                 description:
-                  "Voluntary monthly support for CubitLogic. This donation does not purchase membership or unlock paid features.",
+                  "Voluntary monthly support for CubitLogic. Active supporters receive enhanced account tools while public learning stays free.",
               },
             },
             quantity: 1,
@@ -270,7 +276,7 @@ export const appRouter = router({
         custom_text: {
           submit: {
             message:
-              "This is a voluntary monthly donation. CubitLogic content remains available regardless of whether you donate.",
+              "This is voluntary monthly support. Core CubitLogic learning content remains available whether or not you donate.",
           },
         },
         success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,

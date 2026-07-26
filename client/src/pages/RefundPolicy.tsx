@@ -14,7 +14,7 @@ export default function RefundPolicy() {
         </h1>
         <div className="space-y-5 text-gray-600 leading-relaxed" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
           <p>Last updated: July 17, 2026</p>
-          <p>Voluntary monthly donations may be cancelled at any time. Cancellation stops future donations and does not change your access to Cubit Logic because donations do not purchase membership, content, or special features.</p>
+          <p>Voluntary monthly support may be cancelled at any time. Cancellation stops future charges. Public Cubit Logic learning content remains available, while supporter status and enhanced account tools may return to the standard level after the recurring contribution becomes inactive.</p>
           <p>If you donated by mistake or had a technical problem with a payment, contact support@cubitlogic.com with the email address used for the donation.</p>
           <p>Refund requests are reviewed case by case. Cubit Logic will make a reasonable effort to correct billing problems quickly and fairly.</p>
         </div>

@@ -12,6 +12,7 @@ type AdminUser = {
   email: string | null;
   role: "user" | "admin";
   membership: "free" | "pro";
+  aiAccess: "automatic" | "enabled" | "disabled";
   loginMethod: string | null;
   createdAt: string;
   lastSignedIn: string;
@@ -29,11 +30,12 @@ type AuditItem = {
 type AdminData = {
   summary: {
     totalMembers: number;
-    proMembers: number;
+    supporterMembers: number;
     administrators: number;
     aiRequestsToday: number;
     aiEnabled: boolean;
     foundryConfigured: boolean;
+    currentUserIsOwner: boolean;
   };
   users: AdminUser[];
   auditLog: AuditItem[];
@@ -108,6 +110,23 @@ export default function AdminDashboard() {
     }
   }
 
+  async function updateAiAccess(member: AdminUser, mode: AdminUser["aiAccess"]) {
+    const key = `ai-access-${member.id}`;
+    setSaving(key);
+    setError("");
+    try {
+      await apiRequest(`/api/admin/users/${member.id}/ai-access`, {
+        method: "POST",
+        body: JSON.stringify({ mode }),
+      });
+      await load();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Member Qubit AI access could not be updated.");
+    } finally {
+      setSaving(null);
+    }
+  }
+
   async function setAiEnabled(enabled: boolean) {
     setSaving("ai");
     setError("");
@@ -165,7 +184,7 @@ export default function AdminDashboard() {
               <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 {[
                   { label: "Members", value: data.summary.totalMembers, icon: Users, color: "text-[#0099CC]" },
-                  { label: "Pro members", value: data.summary.proMembers, icon: Crown, color: "text-[#6B21FF]" },
+                  { label: "Supporters", value: data.summary.supporterMembers, icon: Crown, color: "text-[#6B21FF]" },
                   { label: "Administrators", value: data.summary.administrators, icon: Shield, color: "text-amber-600" },
                   { label: "AI requests today", value: data.summary.aiRequestsToday, icon: Activity, color: "text-emerald-600" },
                   { label: "Foundry", value: data.summary.foundryConfigured ? "Configured" : "Not configured", icon: Atom, color: data.summary.foundryConfigured ? "text-emerald-600" : "text-red-600" },
@@ -198,14 +217,15 @@ export default function AdminDashboard() {
               <section className="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
                 <div className="border-b border-gray-100 p-6">
                   <h2 className="text-xl font-black" style={{ fontFamily: "'Orbitron', sans-serif" }}>Member access</h2>
-                  <p className="mt-1 text-sm text-gray-500">The latest 100 accounts are shown. Membership and administrative privileges are enforced by the server.</p>
+                  <p className="mt-1 text-sm text-gray-500">The latest 100 accounts are shown. Support status, Qubit AI access, and administrator approval are separate server-side controls.</p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-left text-sm">
                     <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                       <tr>
                         <th className="px-5 py-3">Member</th>
-                        <th className="px-5 py-3">Membership</th>
+                        <th className="px-5 py-3">Support status</th>
+                        <th className="px-5 py-3">Qubit AI</th>
                         <th className="px-5 py-3">Role</th>
                         <th className="px-5 py-3">Last sign-in</th>
                       </tr>
@@ -224,20 +244,35 @@ export default function AdminDashboard() {
                               onChange={event => void updateMembership(member, event.target.value as "free" | "pro")}
                               className="rounded-lg border border-gray-200 bg-white px-3 py-2"
                             >
-                              <option value="free">Free</option>
-                              <option value="pro">Pro</option>
+                              <option value="free">Standard</option>
+                              <option value="pro">Supporter</option>
+                            </select>
+                          </td>
+                          <td className="px-5 py-4">
+                            <select
+                              value={member.aiAccess}
+                              disabled={saving === `ai-access-${member.id}`}
+                              onChange={event => void updateAiAccess(member, event.target.value as AdminUser["aiAccess"])}
+                              className="rounded-lg border border-gray-200 bg-white px-3 py-2"
+                            >
+                              <option value="automatic">Automatic</option>
+                              <option value="enabled">On (unlimited)</option>
+                              <option value="disabled">Off</option>
                             </select>
                           </td>
                           <td className="px-5 py-4">
                             <select
                               value={member.role}
-                              disabled={saving === `role-${member.id}` || member.id === user?.id}
+                              disabled={!data.summary.currentUserIsOwner || saving === `role-${member.id}` || member.id === user?.id}
                               onChange={event => void updateRole(member, event.target.value as "user" | "admin")}
                               className="rounded-lg border border-gray-200 bg-white px-3 py-2"
                             >
                               <option value="user">User</option>
                               <option value="admin">Admin</option>
                             </select>
+                            {!data.summary.currentUserIsOwner && (
+                              <p className="mt-1 text-xs text-gray-400">Owner approval required</p>
+                            )}
                           </td>
                           <td className="px-5 py-4 text-gray-500">{new Date(member.lastSignedIn).toLocaleString()}</td>
                         </tr>

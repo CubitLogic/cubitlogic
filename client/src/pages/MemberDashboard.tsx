@@ -13,6 +13,7 @@ type DashboardData = {
     email: string | null;
     role: "user" | "admin";
     membership: "free" | "pro";
+    supporter: boolean;
     loginMethod: string | null;
     createdAt: string;
     lastSignedIn: string;
@@ -20,6 +21,9 @@ type DashboardData = {
   aiUsage: {
     date: string;
     usedToday: number;
+    accessMode: "automatic" | "enabled" | "disabled";
+    enabled: boolean;
+    source: "free" | "supporter" | "owner_enabled" | "owner_disabled";
     limit: number | null;
     remaining: number | null;
   };
@@ -80,7 +84,7 @@ export default function MemberDashboard() {
               <h1 className="text-3xl md:text-4xl font-black" style={{ fontFamily: "'Orbitron', sans-serif" }}>
                 Welcome, {data?.user.name || user?.name || "member"}
               </h1>
-              <p className="mt-2 text-gray-500">Your Cubit Logic access, membership, and Qubit AI usage in one place.</p>
+              <p className="mt-2 text-gray-500">Your Cubit Logic account, support status, and Qubit AI access in one place.</p>
             </div>
             <button onClick={signOut} className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold hover:border-red-300 hover:text-red-600">
               <LogOut size={16} /> Sign out
@@ -95,9 +99,11 @@ export default function MemberDashboard() {
               <section className="grid gap-5 md:grid-cols-3">
                 <article className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                   <ShieldCheck className="mb-4 text-[#0099CC]" />
-                  <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Membership</p>
-                  <p className="mt-2 text-2xl font-black capitalize">{data.user.membership}</p>
-                  <p className="mt-2 text-sm text-gray-500">Server-verified access level for member features.</p>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Support status</p>
+                  <p className="mt-2 text-2xl font-black">{data.user.supporter ? "Supporter" : "Standard"}</p>
+                  <p className="mt-2 text-sm text-gray-500">
+                    {data.user.supporter ? "Active recurring support is recorded on this account." : "All public lessons remain available without payment."}
+                  </p>
                 </article>
 
                 <article className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -107,7 +113,11 @@ export default function MemberDashboard() {
                     {data.aiUsage.usedToday}{data.aiUsage.limit === null ? "" : ` / ${data.aiUsage.limit}`}
                   </p>
                   <p className="mt-2 text-sm text-gray-500">
-                    {data.aiUsage.remaining === null ? "Pro membership access" : `${data.aiUsage.remaining} questions remaining today`}
+                    {!data.aiUsage.enabled
+                      ? "Access is turned off for this account"
+                      : data.aiUsage.remaining === null
+                        ? data.aiUsage.source === "supporter" ? "Enhanced supporter access" : "Owner-enabled access"
+                        : `${data.aiUsage.remaining} questions remaining today`}
                   </p>
                 </article>
 
@@ -148,9 +158,11 @@ export default function MemberDashboard() {
                   <Sparkles className="mb-4 text-[#6B21FF]" />
                   <h2 className="text-xl font-black" style={{ fontFamily: "'Orbitron', sans-serif" }}>Continue learning</h2>
                   <div className="mt-5 flex flex-col gap-3">
-                    <a href="/#ai-tutor" className="rounded-lg bg-gradient-to-r from-[#0099CC] to-[#6B21FF] px-4 py-3 text-center font-semibold text-white">Open Qubit AI</a>
+                    {data.aiUsage.enabled && (
+                      <a href="/#ai-tutor" className="rounded-lg bg-gradient-to-r from-[#0099CC] to-[#6B21FF] px-4 py-3 text-center font-semibold text-white">Open Qubit AI</a>
+                    )}
                     <Link href="/topics" className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-center font-semibold">Browse topics</Link>
-                    <Link href="/support" className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-center font-semibold">Membership and support</Link>
+                    <Link href="/support" className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-center font-semibold">Support Cubit Logic</Link>
                     {data.user.role === "admin" && (
                       <Link href="/admin" className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-center font-semibold text-amber-800">Open owner dashboard</Link>
                     )}

@@ -1,9 +1,33 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { ArrowRight, BookOpen, Brain, CheckCircle, Heart, Server } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { trpc } from "@/lib/trpc";
 
 export default function Success() {
+  const capturePayPal = trpc.paypal.captureSubscription.useMutation();
+  const attemptedPayPalCapture = useRef(false);
+  const [supporterMessage, setSupporterMessage] = useState(
+    "Your payment provider is confirming your voluntary monthly support.",
+  );
+
+  useEffect(() => {
+    if (attemptedPayPalCapture.current) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("payment") !== "paypal") return;
+    const subscriptionId = params.get("subscription_id") || params.get("token");
+    if (!subscriptionId) {
+      setSupporterMessage("PayPal returned without a subscription ID. Please contact support so we can verify your contribution.");
+      return;
+    }
+
+    attemptedPayPalCapture.current = true;
+    void capturePayPal.mutateAsync({ subscriptionId })
+      .then(() => setSupporterMessage("Your PayPal support is confirmed and supporter access is active on your account."))
+      .catch(() => setSupporterMessage("PayPal confirmation is still pending. Public learning remains available; contact support if your account does not update."));
+  }, [capturePayPal]);
+
   return (
     <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
       <Navbar />
@@ -26,7 +50,7 @@ export default function Success() {
             Thank you for supporting CubitLogic
           </h1>
           <p className="text-lg text-gray-500 mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Your payment provider is confirming your voluntary monthly donation.
+            {supporterMessage}
           </p>
           <p className="text-sm text-gray-400 mb-10" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             You should receive a receipt or confirmation from the payment provider when it is complete.
@@ -56,8 +80,8 @@ export default function Success() {
           </div>
 
           <p className="text-sm text-gray-500 mb-8" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            This donation does not purchase a membership or change your site access. CubitLogic remains
-            free for everyone.
+            Public CubitLogic learning remains free. Once payment confirmation is linked to your account,
+            supporter status and enhanced account tools stay active while your monthly support remains active.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
