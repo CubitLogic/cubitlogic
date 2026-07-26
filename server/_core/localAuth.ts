@@ -4,6 +4,7 @@ import type { Express, Request, Response } from "express";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
+import { ENV } from "./env";
 import { sdk } from "./sdk";
 
 const scrypt = promisify(scryptCallback);
@@ -11,6 +12,10 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function isValidAccountInput(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function hasSessionSecret(): boolean {
+  return ENV.cookieSecret.trim().length >= 32;
 }
 
 async function hashPassword(password: string): Promise<string> {
@@ -46,6 +51,12 @@ export function registerLocalAuthRoutes(app: Express) {
       return;
     }
 
+    if (!hasSessionSecret()) {
+      console.error("[Auth] Registration is disabled because JWT_SECRET is missing or too short");
+      res.status(503).json({ error: "Account creation is temporarily unavailable." });
+      return;
+    }
+
     try {
       if (await db.getUserByEmail(normalizedEmail)) {
         res.status(409).json({ error: "An account already exists for that email. Please sign in." });
@@ -72,13 +83,23 @@ export function registerLocalAuthRoutes(app: Express) {
       return;
     }
 
+    if (!hasSessionSecret()) {
+      console.error("[Auth] Sign-in is disabled because JWT_SECRET is missing or too short");
+      res.status(503).json({ error: "Sign-in is temporarily unavailable." });
+      return;
+    }
+
     try {
       const user = await db.getUserByEmail(normalizedEmail);
       if (!user?.passwordHash || !(await matchesPassword(password, user.passwordHash))) {
         res.status(401).json({ error: "Email or password is incorrect." });
         return;
       }
-      await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
+      await db.upsertUser({
+        openId: user.openId,
+        lastSignedIn: new Date(),
+        ...(ENV.ownerEmail && normalizedEmail === ENV.ownerEmail ? { role: "admin" as const } : {}),
+      });
       await startSession(req, res, user);
       res.json({ ok: true });
     } catch (error) {
