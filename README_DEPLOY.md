@@ -105,6 +105,7 @@ Set these in your host's environment/secrets panel:
 - `VITE_APP_ID`
 - `VITE_OAUTH_PORTAL_URL`
 - `OAUTH_SERVER_URL`
+- `OWNER_EMAIL` (the only account allowed to approve administrator access)
 - `OWNER_OPEN_ID`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
