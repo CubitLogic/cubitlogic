@@ -82,7 +82,7 @@ export function isCubitSupporterSubscription(
   return items.length === 1 && items[0]?.price?.id === expectedPriceId;
 }
 
-export function isActiveSupporterStatus(status: Stripe.Subscription.Status): boolean {
+export function isActiveSupporterStatus(status: Stripe.Subscription["status"]): boolean {
   return status === "active";
 }
 
