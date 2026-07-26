@@ -96,6 +96,19 @@ export async function initializeDatabase(): Promise<void> {
       readAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       UNIQUE KEY notification_reads_unique (notificationId, userId)
     )`,
+    `CREATE TABLE IF NOT EXISTS site_settings (
+      \`key\` VARCHAR(64) NOT NULL PRIMARY KEY,
+      \`value\` TEXT NOT NULL,
+      \`updatedAt\` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS admin_audit_logs (
+      id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      actorUserId INT NOT NULL,
+      action VARCHAR(96) NOT NULL,
+      targetUserId INT NULL,
+      metadata TEXT NULL,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
   ];
 
   for (const statement of statements) {

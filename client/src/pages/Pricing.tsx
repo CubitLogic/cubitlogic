@@ -33,12 +33,12 @@ const FREE_FEATURES = [
 ];
 
 const SUPPORTER_FEATURES = [
-  { icon: Brain, text: "Unlimited AI Tutor questions — ask as many as you want, all day" },
-  { icon: BookOpen, text: "Full Prompt Engineering Masterclass (Modules 3–7 unlocked)" },
-  { icon: Sparkles, text: "All core quantum topics, blog articles, and hardware lab" },
-  { icon: Atom, text: "Deeper AI explanations — ask follow-ups, request math, get analogies" },
-  { icon: Zap, text: "Priority AI responses — no rate limiting or wait queues" },
-  { icon: Lock, text: "Early access to new courses, quizzes, and learning paths" },
+  { icon: Brain, text: "Enhanced Qubit AI access while support is active" },
+  { icon: Sparkles, text: "Supporter status recorded in your member account" },
+  { icon: Atom, text: "Owner-managed access for account-based learning tools" },
+  { icon: BookOpen, text: "Directly helps keep public courses available to everyone" },
+  { icon: Zap, text: "Funds hosting, AI compute, and new lessons" },
+  { icon: Lock, text: "Cancel anytime through your payment provider" },
 ];
 
 export default function Pricing() {
@@ -49,7 +49,7 @@ export default function Pricing() {
 
   const handleUpgrade = async (method: "stripe" | "paypal") => {
     if (!authUser) {
-      toast.error(`Please sign in first so we can attach Cubit Logic Pro access before starting ${method === "paypal" ? "PayPal" : "Stripe"} checkout.`);
+      toast.error(`Please sign in first so we can attach supporter access before starting ${method === "paypal" ? "PayPal" : "Stripe"} checkout.`);
       return;
     }
 
@@ -97,7 +97,7 @@ export default function Pricing() {
               </h1>
               <p className="text-gray-500 text-lg max-w-2xl mx-auto"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                Cubit Logic keeps the public learning side free. Pro support unlocks unlimited AI Tutor access, full premium modules, and early tools while funding server costs, AI compute, and new content.
+                Anyone can learn and create an account for free. Active supporters receive enhanced account tools while helping fund server costs, AI compute, and new public lessons.
               </p>
             </div>
 
@@ -158,7 +158,7 @@ export default function Pricing() {
                     <span className="text-gray-500 mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>/month</span>
                   </div>
                   <p className="text-sm text-gray-500" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                    Monthly support covers server costs, AI compute, and new content — and unlocks premium access as a thank-you.
+                    Monthly support covers server costs, AI compute, and new content—and activates supporter access as a thank-you.
                   </p>
                 </div>
 
@@ -235,11 +235,11 @@ export default function Pricing() {
                 {[
                   {
                     q: "Is the site really free?",
-                    a: "Yes, completely. You never have to pay anything to use CubitLogic. The Cubit Logic Pro tier is purely optional — a way to help keep the site running if you want to."
+                    a: "Yes. Public learning content and free accounts remain available without payment. Monthly support is optional and adds enhanced account tools while it is active."
                   },
                   {
                     q: "Can I cancel anytime?",
-                    a: "Absolutely. Cancel from your account settings at any time. You keep Cubit Logic Pro access until the end of your billing period, then revert to the free tier."
+                    a: "Absolutely. Cancel through your payment provider at any time. Public learning remains available; supporter tools return to the standard level after support becomes inactive."
                   },
                   {
                     q: "What does my contribution actually pay for?",

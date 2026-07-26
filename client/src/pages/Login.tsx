@@ -54,7 +54,7 @@ export default function Login() {
             {registering ? "Create your account" : "Welcome back"}
           </h1>
           <p className="mt-2 text-sm text-slate-500" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            {registering ? "Save your learning access and manage your membership." : "Sign in to your member dashboard."}
+            {registering ? "Anyone can create a free account—no invitation or payment required." : "Sign in to your member dashboard."}
           </p>
         </div>
 

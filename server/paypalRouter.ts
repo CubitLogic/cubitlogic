@@ -66,7 +66,7 @@ async function getOrCreatePlan(): Promise<string> {
   // Create product first
   const product = (await paypalRequest("POST", "/v1/catalogs/products", {
     name: MONTHLY_DONATION_PLAN_NAME,
-    description: "Voluntary monthly support for CubitLogic with no membership or paid-access benefits.",
+    description: "Voluntary monthly support for CubitLogic with enhanced supporter account tools.",
     type: "SERVICE",
     category: "EDUCATIONAL_AND_TEXTBOOKS",
   })) as { id: string };
@@ -75,7 +75,7 @@ async function getOrCreatePlan(): Promise<string> {
   const plan = (await paypalRequest("POST", "/v1/billing/plans", {
     product_id: product.id,
     name: MONTHLY_DONATION_PLAN_NAME,
-    description: "A voluntary monthly donation supporting CubitLogic. It does not purchase membership or unlock paid features.",
+    description: "Voluntary monthly support for CubitLogic. Public learning content remains free.",
     status: "ACTIVE",
     billing_cycles: [
       {
@@ -150,30 +150,35 @@ export const paypalRouter = router({
         throw new Error("Recurring donation does not belong to this user");
       }
 
-      // Retain the PayPal billing ID for reconciliation without changing
-      // access. A donation does not grant a membership tier.
       const db = await getDb();
       if (!db) throw new Error("Database unavailable");
 
+      const existingRows = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+      const billingId = `paypal:${input.subscriptionId}`;
+      const alreadyActive =
+        existingRows[0]?.stripeSubscriptionId === billingId &&
+        existingRows[0]?.subscriptionStatus === "pro";
+
       await db.update(users)
         .set({
-          stripeSubscriptionId: `paypal:${input.subscriptionId}`, // legacy shared billing-ID field
+          stripeSubscriptionId: billingId,
+          subscriptionStatus: "pro",
         })
         .where(eq(users.id, ctx.user.id));
 
-      // Notify the user
-      await createNotification({
-        userId: ctx.user.id,
-        title: "Thank You for Donating!",
-        message: "Thank you for your voluntary monthly donation to CubitLogic via PayPal. Your contribution helps fund hosting, AI usage, and new educational content; it does not purchase membership or paid access.",
-        type: "subscription",
-      });
+      if (!alreadyActive) {
+        await createNotification({
+          userId: ctx.user.id,
+          title: "Supporter Access Is Active",
+          message: "Thank you for supporting CubitLogic through PayPal. Your account now has active supporter status and enhanced Qubit AI access.",
+          type: "subscription",
+        });
 
-      // Alert the owner
-      const userName = ctx.user.name || ctx.user.email || `User #${ctx.user.id}`;
-      await alertOwner("New Monthly Donation", `${userName} started a voluntary CubitLogic donation via PayPal ($5/month).`);
+        const userName = ctx.user.name || ctx.user.email || `User #${ctx.user.id}`;
+        await alertOwner("New Monthly Donation", `${userName} started a voluntary CubitLogic donation via PayPal ($5/month).`);
+      }
 
-      return { success: true };
+      return { success: true, supporterActive: true };
     }),
 
   // Webhook handler for PayPal recurring-donation events (called from Express)

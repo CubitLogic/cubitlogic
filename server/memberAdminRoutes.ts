@@ -1,12 +1,19 @@
 import type { Express, NextFunction, Request, Response } from "express";
 import { count, desc, eq, sql, sum } from "drizzle-orm";
+import { ipKeyGenerator, rateLimit } from "express-rate-limit";
 import { adminAuditLogs, aiUsage, siteSettings, users, type User } from "../drizzle/schema";
 import { getDb } from "./db";
 import { ENV } from "./_core/env";
 import { sdk } from "./_core/sdk";
+import {
+  ensureMemberAccessStorage,
+  FREE_DAILY_LIMIT,
+  readMemberAiAccess,
+  writeMemberAiAccess,
+  type MemberAiAccessMode,
+} from "./memberAccess";
 
 const AI_ENABLED_KEY = "qubit_ai_enabled";
-const FREE_DAILY_LIMIT = 5;
 let controlTablesReady = false;
 
 type Database = NonNullable<Awaited<ReturnType<typeof getDb>>>;
@@ -14,6 +21,24 @@ type Database = NonNullable<Awaited<ReturnType<typeof getDb>>>;
 function firstForwardedValue(value: string | undefined): string | undefined {
   return value?.split(",", 1)[0]?.trim();
 }
+
+const adminMutationRateLimit = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 30,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  keyGenerator: req => {
+    const clientIp =
+      firstForwardedValue(req.get("cf-connecting-ip")) ??
+      firstForwardedValue(req.get("x-forwarded-for")) ??
+      req.ip ??
+      "unknown";
+    return ipKeyGenerator(clientIp);
+  },
+  message: {
+    error: "Too many administrative changes were requested. Please wait and try again.",
+  },
+});
 
 export function requireSameOriginRequest(req: Request, res: Response, next: NextFunction): void {
   const origin = req.get("origin");
@@ -36,11 +61,7 @@ export function requireSameOriginRequest(req: Request, res: Response, next: Next
 async function ensureControlTables(db: Database): Promise<void> {
   if (controlTablesReady) return;
 
-  await db.execute(sql.raw(`CREATE TABLE IF NOT EXISTS site_settings (
-    \`key\` VARCHAR(64) NOT NULL PRIMARY KEY,
-    \`value\` TEXT NOT NULL,
-    \`updatedAt\` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-  )`));
+  await ensureMemberAccessStorage(db);
 
   await db.execute(sql.raw(`CREATE TABLE IF NOT EXISTS admin_audit_logs (
     \`id\` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -73,6 +94,23 @@ async function getAdminUser(req: Request, res: Response): Promise<User | null> {
   if (!user) return null;
   if (user.role !== "admin") {
     res.status(403).json({ error: "Owner access is required." });
+    return null;
+  }
+  return user;
+}
+
+function isSiteOwner(user: User): boolean {
+  const emailMatches =
+    Boolean(ENV.ownerEmail) &&
+    user.email?.trim().toLowerCase() === ENV.ownerEmail.trim().toLowerCase();
+  return emailMatches || (Boolean(ENV.ownerOpenId) && user.openId === ENV.ownerOpenId);
+}
+
+async function getOwnerUser(req: Request, res: Response): Promise<User | null> {
+  const user = await getAdminUser(req, res);
+  if (!user) return null;
+  if (!isSiteOwner(user)) {
+    res.status(403).json({ error: "Only the Cubit Logic owner can change administrator access." });
     return null;
   }
   return user;
@@ -147,7 +185,7 @@ export function registerMemberAdminRoutes(app: Express): void {
       .where(sql`${aiUsage.userId} = ${user.id} AND ${aiUsage.date} = ${date}`)
       .limit(1);
     const usedToday = usageRows[0]?.count ?? 0;
-    const isPro = user.subscriptionStatus === "pro";
+    const aiAccess = await readMemberAiAccess(db, user);
 
     res.json({
       user: {
@@ -156,6 +194,7 @@ export function registerMemberAdminRoutes(app: Express): void {
         email: user.email,
         role: user.role,
         membership: user.subscriptionStatus,
+        supporter: user.subscriptionStatus === "pro",
         loginMethod: user.loginMethod,
         createdAt: user.createdAt,
         lastSignedIn: user.lastSignedIn,
@@ -163,8 +202,11 @@ export function registerMemberAdminRoutes(app: Express): void {
       aiUsage: {
         date,
         usedToday,
-        limit: isPro ? null : FREE_DAILY_LIMIT,
-        remaining: isPro ? null : Math.max(0, FREE_DAILY_LIMIT - usedToday),
+        accessMode: aiAccess.mode,
+        enabled: aiAccess.enabled,
+        source: aiAccess.source,
+        limit: aiAccess.unlimited ? null : FREE_DAILY_LIMIT,
+        remaining: aiAccess.unlimited ? null : Math.max(0, FREE_DAILY_LIMIT - usedToday),
       },
     });
   });
@@ -203,28 +245,76 @@ export function registerMemberAdminRoutes(app: Express): void {
       db.select().from(adminAuditLogs).orderBy(desc(adminAuditLogs.createdAt)).limit(20),
     ]);
 
+    const membersWithAccess = await Promise.all(
+      memberRows.map(async member => ({
+        ...member,
+        aiAccess: (await readMemberAiAccess(db, {
+          id: member.id,
+          subscriptionStatus: member.membership,
+        })).mode,
+      })),
+    );
+
     res.json({
       summary: {
         totalMembers: Number(totalRows[0]?.value ?? 0),
-        proMembers: Number(proRows[0]?.value ?? 0),
+        supporterMembers: Number(proRows[0]?.value ?? 0),
         administrators: Number(adminRows[0]?.value ?? 0),
         aiRequestsToday: Number(usageRows[0]?.value ?? 0),
         aiEnabled: await readAiEnabled(db),
         foundryConfigured: ENV.aiConfigured,
+        currentUserIsOwner: isSiteOwner(admin),
       },
-      users: memberRows,
+      users: membersWithAccess,
       auditLog: auditRows,
     });
   });
 
-  app.post("/api/admin/users/:userId/membership", requireSameOriginRequest, async (req, res) => {
+  app.post(
+    "/api/admin/users/:userId/membership",
+    requireSameOriginRequest,
+    adminMutationRateLimit,
+    async (req, res) => {
+      const admin = await getAdminUser(req, res);
+      if (!admin) return;
+
+      const userId = Number.parseInt(req.params.userId, 10);
+      const membership = req.body?.membership;
+      if (!Number.isInteger(userId) || (membership !== "free" && membership !== "pro")) {
+        res.status(400).json({ error: "Choose a valid member and supporter status." });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) {
+        res.status(503).json({ error: "Administration data is temporarily unavailable." });
+        return;
+      }
+
+      const targetRows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      const target = targetRows[0];
+      if (!target) {
+        res.status(404).json({ error: "Member not found." });
+        return;
+      }
+
+      await db.update(users).set({ subscriptionStatus: membership }).where(eq(users.id, userId));
+      await writeAudit(db, admin.id, "supporter_status.updated", userId, {
+        previous: target.subscriptionStatus,
+        next: membership,
+      });
+      res.json({ ok: true });
+    },
+  );
+
+  app.post("/api/admin/users/:userId/ai-access", requireSameOriginRequest, adminMutationRateLimit, async (req, res) => {
     const admin = await getAdminUser(req, res);
     if (!admin) return;
 
     const userId = Number.parseInt(req.params.userId, 10);
-    const membership = req.body?.membership;
-    if (!Number.isInteger(userId) || (membership !== "free" && membership !== "pro")) {
-      res.status(400).json({ error: "Choose a valid member and membership level." });
+    const mode = req.body?.mode as MemberAiAccessMode | undefined;
+    if (!Number.isInteger(userId) || !mode || !["automatic", "enabled", "disabled"].includes(mode)) {
+      res.status(400).json({ error: "Choose a valid member and Qubit AI access mode." });
       return;
     }
 
@@ -241,16 +331,14 @@ export function registerMemberAdminRoutes(app: Express): void {
       return;
     }
 
-    await db.update(users).set({ subscriptionStatus: membership }).where(eq(users.id, userId));
-    await writeAudit(db, admin.id, "membership.updated", userId, {
-      previous: target.subscriptionStatus,
-      next: membership,
-    });
+    const previous = (await readMemberAiAccess(db, target)).mode;
+    await writeMemberAiAccess(db, userId, mode);
+    await writeAudit(db, admin.id, "member_ai_access.updated", userId, { previous, next: mode });
     res.json({ ok: true });
   });
 
-  app.post("/api/admin/users/:userId/role", requireSameOriginRequest, async (req, res) => {
-    const admin = await getAdminUser(req, res);
+  app.post("/api/admin/users/:userId/role", requireSameOriginRequest, adminMutationRateLimit, async (req, res) => {
+    const admin = await getOwnerUser(req, res);
     if (!admin) return;
 
     const userId = Number.parseInt(req.params.userId, 10);
@@ -282,7 +370,7 @@ export function registerMemberAdminRoutes(app: Express): void {
     res.json({ ok: true });
   });
 
-  app.post("/api/admin/ai-enabled", requireSameOriginRequest, async (req, res) => {
+  app.post("/api/admin/ai-enabled", requireSameOriginRequest, adminMutationRateLimit, async (req, res) => {
     const admin = await getAdminUser(req, res);
     if (!admin) return;
     if (typeof req.body?.enabled !== "boolean") {

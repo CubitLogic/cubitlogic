@@ -16,8 +16,8 @@ export default function Terms() {
           <p>Last updated: July 17, 2026</p>
           <p>Cubit Logic provides educational content, AI-assisted explanations, curated news, and related learning resources. The content is for education and general information only.</p>
           <p>You agree not to abuse the AI tutor, attempt unauthorized access, interfere with site operation, scrape content at abusive rates, or use the service for unlawful activity.</p>
-          <p>Cubit Logic may accept voluntary donations to help fund hosting, AI compute, maintenance, and new educational content. A donation is not a purchase, does not create a membership, and does not grant enhanced access, special features, or priority service.</p>
-          <p>If you choose a recurring monthly donation, it continues until you cancel it through the payment provider or ask Cubit Logic support for help. Cancelling a donation does not change your access to the site.</p>
+          <p>Cubit Logic may accept voluntary monthly support to help fund hosting, AI compute, maintenance, and new educational content. A successfully linked recurring contribution may activate supporter status and enhanced account-based tools. Public educational content remains available without payment.</p>
+          <p>Recurring support continues until you cancel it through the payment provider or ask Cubit Logic support for help. When recurring support becomes inactive, supporter status and related account tools may return to the standard level. The site owner may also enable or disable account features for safety, support, or operational reasons.</p>
           <p>The site is provided as-is without a guarantee that every explanation, external feed item, or AI response is complete or error-free. Verify high-stakes technical, financial, medical, or legal decisions independently. Yes, reality remains annoyingly non-optional.</p>
           <p>Questions may be sent to support@cubitlogic.com.</p>
         </div>

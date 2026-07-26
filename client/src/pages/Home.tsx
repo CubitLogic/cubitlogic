@@ -57,7 +57,13 @@ function AiTutorSection() {
         .map((m) => ({ role: m.role === "user" ? "user" as const : "assistant" as const, content: m.text }));
       const result = await chatMutation.mutateAsync({ message: userMsg, history: history.slice(0, -1) });
       if (result.limitReached) {
-        setMessages((m) => [...m, { role: "ai", text: "", isLimitNotice: true }]);
+        const accessDisabled = "accessDisabled" in result && result.accessDisabled;
+        setMessages((m) => [...m, {
+          role: "ai",
+          text: accessDisabled ? "Qubit AI access is currently turned off for this account. Contact Cubit Logic support if you think this is a mistake." : "",
+          isLimitNotice: !accessDisabled,
+          isFallback: Boolean(accessDisabled),
+        }]);
       } else {
         setMessages((m) => [...m, {
           role: "ai",

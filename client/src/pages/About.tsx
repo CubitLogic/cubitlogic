@@ -20,7 +20,7 @@ export default function About() {
             The site combines clear lessons, a focused AI tutor, curated science and technology news, and practical course material for people who want to learn how modern intelligent systems actually work.
           </p>
           <p>
-            All learning content is free. Voluntary donations help cover hosting, AI compute, site maintenance, and new educational material without creating paid membership levels.
+            Public learning content is free, and anyone can create an account. Voluntary monthly supporters help cover hosting, AI compute, site maintenance, and new educational material while receiving enhanced account tools.
           </p>
         </div>
       </main>
