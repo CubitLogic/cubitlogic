@@ -2,6 +2,7 @@ import { Link, useParams } from "wouter";
 import { ArrowLeft, ArrowRight, ChevronRight, Clock, Sparkles, Target } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import QubitVoiceOrb, { inferQubitEmotion } from "@/components/QubitVoiceOrb";
 import { getCourseModule, courseModules } from "@/lib/promptCourseContent";
 
 export default function PromptModule() {
@@ -31,6 +32,25 @@ export default function PromptModule() {
   const currentIndex = courseModules.findIndex((m) => m.id === mod.id);
   const prevModule = currentIndex > 0 ? courseModules[currentIndex - 1] : null;
   const nextModule = currentIndex < courseModules.length - 1 ? courseModules[currentIndex + 1] : null;
+  const lessonNarration = [
+    `Module ${mod.number}. ${mod.title}. ${mod.subtitle}.`,
+    mod.description,
+    ...mod.sections.flatMap((section) => [
+      section.title,
+      section.body,
+      ...(section.examples ?? []).flatMap((example) => [
+        `Example. ${example.label}.`,
+        example.bad ? `A weak prompt is: ${example.bad}` : "",
+        `A strong prompt is: ${example.good}`,
+        `Why it works. ${example.explanation}`,
+      ]),
+      ...(section.tips ?? []).map((tip) => `Quick tip. ${tip}`),
+    ]),
+    "Key takeaways.",
+    ...mod.keyTakeaways,
+    "Practice challenge.",
+    mod.practiceChallenge,
+  ].filter(Boolean).join("\n\n");
 
   return (
     <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
@@ -88,147 +108,154 @@ export default function PromptModule() {
 
       {/* Module content */}
       <section className="py-12">
-          <div className="container max-w-4xl">
-            <div className="space-y-12">
-              {mod.sections.map((section, sIdx) => (
-                <div key={sIdx}>
-                  <h2 className="text-xl font-black text-gray-900 mb-4" style={{ fontFamily: "'Orbitron', sans-serif" }}>
-                    {section.title}
-                  </h2>
-                  <p className="text-gray-600 leading-relaxed mb-6" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                    {section.body}
-                  </p>
+        <div className="container max-w-4xl">
+          <QubitVoiceOrb
+            text={lessonNarration}
+            title="Qubit reads this module"
+            emotion={inferQubitEmotion(lessonNarration)}
+            className="mb-12"
+          />
 
-                  {/* Examples */}
-                  {section.examples && section.examples.map((ex, eIdx) => (
-                    <div key={eIdx} className="mb-6">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Sparkles size={13} style={{ color: mod.color }} />
-                        <span className="text-xs font-bold uppercase tracking-wide" style={{ color: mod.color, fontFamily: "'Space Grotesk', sans-serif" }}>
-                          Example: {ex.label}
-                        </span>
-                      </div>
-                      {ex.bad && (
-                        <div className="mb-3">
-                          <div className="text-xs font-semibold text-red-500 mb-1.5 flex items-center gap-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                            ✗ Weak prompt
-                          </div>
-                          <div className="rounded-xl bg-red-50 border border-red-100 p-4">
-                            <pre className="text-sm text-red-700 whitespace-pre-wrap font-mono leading-relaxed">{ex.bad}</pre>
-                          </div>
-                        </div>
-                      )}
-                      <div className="mb-3">
-                        <div className="text-xs font-semibold text-green-600 mb-1.5 flex items-center gap-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                          ✓ Strong prompt
-                        </div>
-                        <div className="rounded-xl bg-green-50 border border-green-100 p-4">
-                          <pre className="text-sm text-green-800 whitespace-pre-wrap font-mono leading-relaxed">{ex.good}</pre>
-                        </div>
-                      </div>
-                      <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
-                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Why it works</span>
-                        <p className="text-sm text-gray-600 leading-relaxed" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{ex.explanation}</p>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Tips */}
-                  {section.tips && (
-                    <div className="rounded-2xl border p-5" style={{ backgroundColor: mod.color + "08", borderColor: mod.color + "25" }}>
-                      <div className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: mod.color, fontFamily: "'Space Grotesk', sans-serif" }}>
-                        Quick Tips
-                      </div>
-                      <ul className="space-y-2">
-                        {section.tips.map((tip, tIdx) => (
-                          <li key={tIdx} className="flex items-start gap-2">
-                            <span style={{ color: mod.color }} className="mt-0.5 flex-shrink-0">→</span>
-                            <span className="text-sm text-gray-600" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{tip}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {/* Key Takeaways */}
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-                <h3 className="font-black text-gray-900 mb-4" style={{ fontFamily: "'Orbitron', sans-serif" }}>
-                  Key Takeaways
-                </h3>
-                <ul className="space-y-3">
-                  {mod.keyTakeaways.map((t, i) => (
-                    <li key={i} className="flex items-start gap-3">
-                      <div
-                        className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-xs font-black"
-                        style={{ backgroundColor: mod.color, fontFamily: "'Orbitron', sans-serif" }}
-                      >
-                        {i + 1}
-                      </div>
-                      <span className="text-sm text-gray-700 leading-relaxed" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{t}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Practice Challenge */}
-              <div className="rounded-2xl border p-6" style={{ backgroundColor: mod.color + "08", borderColor: mod.color + "30" }}>
-                <div className="flex items-center gap-2 mb-3">
-                  <Target size={16} style={{ color: mod.color }} />
-                  <span className="font-black text-sm" style={{ color: mod.color, fontFamily: "'Orbitron', sans-serif" }}>
-                    Practice Challenge
-                  </span>
-                </div>
-                <p className="text-gray-700 leading-relaxed text-sm" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  {mod.practiceChallenge}
+          <div className="space-y-12">
+            {mod.sections.map((section, sIdx) => (
+              <div key={sIdx}>
+                <h2 className="text-xl font-black text-gray-900 mb-4" style={{ fontFamily: "'Orbitron', sans-serif" }}>
+                  {section.title}
+                </h2>
+                <p className="text-gray-600 leading-relaxed mb-6" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                  {section.body}
                 </p>
+
+                {/* Examples */}
+                {section.examples && section.examples.map((ex, eIdx) => (
+                  <div key={eIdx} className="mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles size={13} style={{ color: mod.color }} />
+                      <span className="text-xs font-bold uppercase tracking-wide" style={{ color: mod.color, fontFamily: "'Space Grotesk', sans-serif" }}>
+                        Example: {ex.label}
+                      </span>
+                    </div>
+                    {ex.bad && (
+                      <div className="mb-3">
+                        <div className="text-xs font-semibold text-red-500 mb-1.5 flex items-center gap-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                          ✗ Weak prompt
+                        </div>
+                        <div className="rounded-xl bg-red-50 border border-red-100 p-4">
+                          <pre className="text-sm text-red-700 whitespace-pre-wrap font-mono leading-relaxed">{ex.bad}</pre>
+                        </div>
+                      </div>
+                    )}
+                    <div className="mb-3">
+                      <div className="text-xs font-semibold text-green-600 mb-1.5 flex items-center gap-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                        ✓ Strong prompt
+                      </div>
+                      <div className="rounded-xl bg-green-50 border border-green-100 p-4">
+                        <pre className="text-sm text-green-800 whitespace-pre-wrap font-mono leading-relaxed">{ex.good}</pre>
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Why it works</span>
+                      <p className="text-sm text-gray-600 leading-relaxed" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{ex.explanation}</p>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Tips */}
+                {section.tips && (
+                  <div className="rounded-2xl border p-5" style={{ backgroundColor: mod.color + "08", borderColor: mod.color + "25" }}>
+                    <div className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: mod.color, fontFamily: "'Space Grotesk', sans-serif" }}>
+                      Quick Tips
+                    </div>
+                    <ul className="space-y-2">
+                      {section.tips.map((tip, tIdx) => (
+                        <li key={tIdx} className="flex items-start gap-2">
+                          <span style={{ color: mod.color }} className="mt-0.5 flex-shrink-0">→</span>
+                          <span className="text-sm text-gray-600" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
+            ))}
+
+            {/* Key Takeaways */}
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
+              <h3 className="font-black text-gray-900 mb-4" style={{ fontFamily: "'Orbitron', sans-serif" }}>
+                Key Takeaways
+              </h3>
+              <ul className="space-y-3">
+                {mod.keyTakeaways.map((t, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div
+                      className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-xs font-black"
+                      style={{ backgroundColor: mod.color, fontFamily: "'Orbitron', sans-serif" }}
+                    >
+                      {i + 1}
+                    </div>
+                    <span className="text-sm text-gray-700 leading-relaxed" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{t}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            {/* Navigation */}
-            <div className="flex items-center justify-between mt-12 pt-8 border-t border-gray-100">
-              {prevModule ? (
-                <Link
-                  href={`/prompt-engineering/${prevModule.id}`}
-                  className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors"
-                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-                >
-                  <ArrowLeft size={14} />
-                  <div>
-                    <div className="text-xs text-gray-400">Previous</div>
-                    <div>{prevModule.title}</div>
-                  </div>
-                </Link>
-              ) : <div />}
-
-              {nextModule ? (
-                <Link
-                  href={`/prompt-engineering/${nextModule.id}`}
-                  className="flex items-center gap-2 text-sm font-semibold transition-colors hover:opacity-80"
-                  style={{ color: mod.color, fontFamily: "'Space Grotesk', sans-serif" }}
-                >
-                  <div className="text-right">
-                    <div className="text-xs text-gray-400">Next</div>
-                    <div>{nextModule.title}</div>
-                  </div>
-                  <ArrowRight size={14} />
-                </Link>
-              ) : (
-                <Link
-                  href="/prompt-engineering"
-                  className="flex items-center gap-2 text-sm font-semibold transition-colors"
-                  style={{ color: mod.color, fontFamily: "'Space Grotesk', sans-serif" }}
-                >
-                  <div className="text-right">
-                    <div className="text-xs text-gray-400">Finished!</div>
-                    <div>Back to Course</div>
-                  </div>
-                  <ArrowRight size={14} />
-                </Link>
-              )}
+            {/* Practice Challenge */}
+            <div className="rounded-2xl border p-6" style={{ backgroundColor: mod.color + "08", borderColor: mod.color + "30" }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Target size={16} style={{ color: mod.color }} />
+                <span className="font-black text-sm" style={{ color: mod.color, fontFamily: "'Orbitron', sans-serif" }}>
+                  Practice Challenge
+                </span>
+              </div>
+              <p className="text-gray-700 leading-relaxed text-sm" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                {mod.practiceChallenge}
+              </p>
             </div>
           </div>
+
+          {/* Navigation */}
+          <div className="flex items-center justify-between mt-12 pt-8 border-t border-gray-100">
+            {prevModule ? (
+              <Link
+                href={`/prompt-engineering/${prevModule.id}`}
+                className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors"
+                style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+              >
+                <ArrowLeft size={14} />
+                <div>
+                  <div className="text-xs text-gray-400">Previous</div>
+                  <div>{prevModule.title}</div>
+                </div>
+              </Link>
+            ) : <div />}
+
+            {nextModule ? (
+              <Link
+                href={`/prompt-engineering/${nextModule.id}`}
+                className="flex items-center gap-2 text-sm font-semibold transition-colors hover:opacity-80"
+                style={{ color: mod.color, fontFamily: "'Space Grotesk', sans-serif" }}
+              >
+                <div className="text-right">
+                  <div className="text-xs text-gray-400">Next</div>
+                  <div>{nextModule.title}</div>
+                </div>
+                <ArrowRight size={14} />
+              </Link>
+            ) : (
+              <Link
+                href="/prompt-engineering"
+                className="flex items-center gap-2 text-sm font-semibold transition-colors"
+                style={{ color: mod.color, fontFamily: "'Space Grotesk', sans-serif" }}
+              >
+                <div className="text-right">
+                  <div className="text-xs text-gray-400">Finished!</div>
+                  <div>Back to Course</div>
+                </div>
+                <ArrowRight size={14} />
+              </Link>
+            )}
+          </div>
+        </div>
       </section>
 
       <Footer />
