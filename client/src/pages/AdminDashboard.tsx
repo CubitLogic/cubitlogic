@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "wouter";
-import { Activity, Atom, Crown, RefreshCw, Shield, ToggleLeft, ToggleRight, Users } from "lucide-react";
+import { Activity, Atom, Check, ClipboardCopy, Crown, RefreshCw, Shield, ToggleLeft, ToggleRight, Users } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ParticleField from "@/components/ParticleField";
@@ -52,12 +52,52 @@ async function apiRequest(url: string, options?: RequestInit) {
   return body;
 }
 
+function buildChatGptHandoff(data: AdminData): string {
+  return `CUBIT LOGIC PROJECT HANDOFF
+
+Website: https://cubitlogic.com
+GitHub: https://github.com/CubitLogic/cubitlogic
+
+Non-negotiable access rules:
+- Anyone may create a free account. No invitation or payment is required.
+- Public educational content remains available without payment.
+- Standard, supporter, and administrator status are separate.
+- A successful linked Stripe or PayPal recurring contribution activates supporter status.
+- Qubit AI access is controlled per member as Automatic, On (unlimited), or Off.
+- Automatic gives standard members the normal allowance and active supporters enhanced access.
+- A donation never grants administrator access.
+- Only the configured Cubit Logic owner may approve or remove administrators.
+- Approved administrators cannot create additional administrators.
+- Never expose credentials, payment details, database values, or hosting secrets.
+
+Current owner-dashboard snapshot:
+- Members: ${data.summary.totalMembers}
+- Supporters: ${data.summary.supporterMembers}
+- Administrators: ${data.summary.administrators}
+- Qubit AI requests today: ${data.summary.aiRequestsToday}
+- Qubit AI global switch: ${data.summary.aiEnabled ? "ON" : "OFF"}
+- Microsoft Foundry connection: ${data.summary.foundryConfigured ? "configured" : "not configured"}
+
+Current direction:
+- Build a step-by-step course on designing an AI with Microsoft Foundry and Azure.
+- Develop sponsor relationships that fit independent AI and quantum education.
+- Add carefully selected affiliate income with clear, nearby disclosures.
+
+Working rules for ChatGPT:
+- Treat GitHub main as the code source of truth.
+- Distinguish local, pushed, merged, deployed, and live-verified status.
+- Do not say a feature is live until https://cubitlogic.com has been checked.
+- Keep recommendations educationally independent and clearly label paid relationships.
+- Ask Bryon before any external message, purchase, account application, or public commitment.`;
+}
+
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth({ redirectOnUnauthenticated: true, redirectPath: "/login" });
   const [data, setData] = useState<AdminData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [handoffCopied, setHandoffCopied] = useState(false);
 
   const load = useCallback(async () => {
     if (!user || user.role !== "admin") return;
@@ -143,6 +183,17 @@ export default function AdminDashboard() {
     }
   }
 
+  async function copyChatGptHandoff() {
+    if (!data) return;
+    try {
+      await navigator.clipboard.writeText(buildChatGptHandoff(data));
+      setHandoffCopied(true);
+      window.setTimeout(() => setHandoffCopied(false), 2500);
+    } catch {
+      setError("The handoff could not be copied automatically. Please try again.");
+    }
+  }
+
   if (!authLoading && user && user.role !== "admin") {
     return (
       <div className="min-h-screen bg-white">
@@ -210,6 +261,27 @@ export default function AdminDashboard() {
                   >
                     {data.summary.aiEnabled ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
                     Qubit AI is {data.summary.aiEnabled ? "ON" : "OFF"}
+                  </button>
+                </div>
+              </section>
+
+              <section className="mt-6 overflow-hidden rounded-2xl border border-violet-300 bg-gradient-to-br from-violet-950 via-[#32106b] to-[#6B21FF] p-6 text-white shadow-lg shadow-violet-950/15">
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="max-w-3xl">
+                    <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-violet-200">
+                      <ClipboardCopy size={15} /> ChatGPT handoff
+                    </div>
+                    <h2 className="text-xl font-black" style={{ fontFamily: "'Orbitron', sans-serif" }}>Carry the project context with you</h2>
+                    <p className="mt-2 text-sm leading-relaxed text-violet-100">
+                      Copy a sanitized project brief for regular ChatGPT. It includes the access rules, live dashboard counts, repository links, and next priorities—but never credentials, payment data, or hosting secrets.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => void copyChatGptHandoff()}
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 font-semibold text-violet-900 shadow-sm transition hover:bg-violet-50"
+                  >
+                    {handoffCopied ? <Check size={18} /> : <ClipboardCopy size={18} />}
+                    {handoffCopied ? "Copied" : "Copy for ChatGPT"}
                   </button>
                 </div>
               </section>
