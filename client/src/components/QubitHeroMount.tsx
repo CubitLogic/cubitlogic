@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import QubitHeroVisual from "./QubitHeroVisual";
 
+// Mounts the interactive Qubit experience into the existing homepage hero.
 export default function QubitHeroMount() {
   const [host, setHost] = useState<HTMLElement | null>(null);
 
