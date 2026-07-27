@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
+import ArticleVisualMount from "./components/ArticleVisualMount";
 import ErrorBoundary from "./components/ErrorBoundary";
 import QubitChatCompanion from "./components/QubitChatCompanion";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -53,6 +54,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          <ArticleVisualMount />
           <QubitChatCompanion />
         </TooltipProvider>
       </ThemeProvider>
