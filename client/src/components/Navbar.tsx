@@ -15,7 +15,7 @@ const navLinks = [
   { label: "Hardware", href: "/hardware" },
   { label: "Prompt Course", href: "/prompt-engineering" },
   { label: "Blog", href: "/blog" },
-  { label: "AI Tutor", href: "/#ai-tutor" },
+  { label: "Qubit", href: "/#ai-tutor" },
   { label: "News", href: "/news" },
   { label: "Support", href: "/support" },
 ];
