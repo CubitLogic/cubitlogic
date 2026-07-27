@@ -4,6 +4,7 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import QubitChatCompanion from "./components/QubitChatCompanion";
+import QubitHeroMount from "./components/QubitHeroMount";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Blog from "./pages/Blog";
@@ -53,6 +54,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          <QubitHeroMount />
           <QubitChatCompanion />
         </TooltipProvider>
       </ThemeProvider>
