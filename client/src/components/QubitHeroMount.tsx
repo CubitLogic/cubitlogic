@@ -55,7 +55,7 @@ export default function QubitHeroMount() {
       mountedHost = document.createElement("div");
       mountedHost.setAttribute("data-qubit-hero", "true");
       mountedHost.className =
-        "pointer-events-auto absolute inset-y-16 right-0 z-[5] hidden w-[48%] items-center justify-center md:flex";
+        "pointer-events-auto absolute inset-y-16 right-0 z-[20] hidden w-[48%] items-center justify-center md:flex";
       heroSection.appendChild(mountedHost);
       setHost(mountedHost);
     };
