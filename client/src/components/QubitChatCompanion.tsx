@@ -92,6 +92,7 @@ export default function QubitChatCompanion() {
       const nextSection = document.querySelector<HTMLElement>("#ai-tutor");
 
       if (
+        nextSection &&
         nextSection === sectionRef.current &&
         hostRef.current?.isConnected
       ) {
