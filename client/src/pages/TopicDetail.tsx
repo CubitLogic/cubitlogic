@@ -7,6 +7,7 @@ import { ArrowLeft, Clock, BarChart2, ChevronRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ParticleField from "@/components/ParticleField";
+import QubitVoiceOrb, { inferQubitEmotion } from "@/components/QubitVoiceOrb";
 import { topics } from "@/lib/content";
 
 export default function TopicDetail() {
@@ -27,6 +28,13 @@ export default function TopicDetail() {
       </div>
     );
   }
+
+  const lessonNarration = [
+    topic.title,
+    topic.subtitle,
+    `Overview. ${topic.summary}`,
+    topic.body,
+  ].join("\n\n");
 
   return (
     <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
@@ -76,13 +84,20 @@ export default function TopicDetail() {
 
           {/* Summary box */}
           <div
-            className="rounded-xl p-5 mb-10 border-l-4"
+            className="rounded-xl p-5 mb-6 border-l-4"
             style={{ backgroundColor: topic.color + "08", borderColor: topic.color }}
           >
             <p className="text-gray-700 text-sm leading-relaxed" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               <strong className="text-gray-900">Overview: </strong>{topic.summary}
             </p>
           </div>
+
+          <QubitVoiceOrb
+            text={lessonNarration}
+            title="Qubit reads this lesson"
+            emotion={inferQubitEmotion(lessonNarration)}
+            className="mb-10"
+          />
 
           {/* Full body */}
           <div className="prose-quantum" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
