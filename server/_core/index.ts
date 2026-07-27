@@ -12,6 +12,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { initializeDatabase } from "../db";
 import { enforceAiRuntimeControl, registerMemberAdminRoutes } from "../memberAdminRoutes";
+import { registerTtsRoutes } from "../ttsRoutes";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -36,14 +37,9 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
-  // The GoDaddy deployment supplies DB_* values for its hosted MySQL service.
-  // Table setup is idempotent, so preview and published app share one schema.
   await initializeDatabase();
 
-  // Stripe webhook needs raw body BEFORE express.json()
   app.use("/api/stripe/webhook", express.raw({ type: "application/json" }));
-
-  // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
@@ -52,12 +48,9 @@ async function startServer() {
   registerLocalAuthRoutes(app);
   registerStripeWebhook(app);
   registerMemberAdminRoutes(app);
+  registerTtsRoutes(app);
 
-  // Owner-controlled runtime gate for Qubit AI. This check runs before tRPC,
-  // persists in MySQL, and therefore survives app restarts and redeployments.
   app.use("/api/trpc", enforceAiRuntimeControl);
-
-  // tRPC API
   app.use(
     "/api/trpc",
     createExpressMiddleware({
@@ -65,7 +58,7 @@ async function startServer() {
       createContext,
     })
   );
-  // development mode uses Vite, production mode uses static files
+
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {
